@@ -1,0 +1,76 @@
+Music-Pro Playable Product Patch — AUDITED REVISION Verification
+Base GitHub main: 1542974a0274d41791bd2209521eff139d3b83f1
+Fresh source verification UTC: 2026-09-15T13:25:37Z
+
+[1] Strict TypeScript: music/audio/test modules
+PASS
+
+[2] Pure deterministic tests
+--- MIDI export tests ---
+PASS: variable-length encoding
+PASS: Standard MIDI File Type-1 structure
+PASS: percussion MIDI channel-10 mapping
+
+--- MusicXML transform pure pitch tests ---
+PASS: pitch spelling and key-signature selection
+
+--- Playback helper tests ---
+PASS: playback start/end normalization
+
+--- Score identity tests ---
+PASS: MusicXML identity changes when score content changes
+
+--- ScoreTimeline pure tests ---
+PASS: pitch-to-MIDI conversion
+PASS: missing/non-numeric measure-number fallback
+PASS: MusicXML midi-unpitched 1..128 to MIDI 0..127 conversion
+PASS: missing/invalid dynamics uses audible default velocity
+PASS: tempo integration and inverse conversion
+PASS: normal/implicit measure alignment
+PASS: dotted metronome conversion
+
+[3] Changed React integration files
+PASS: strict TypeScript typecheck against interface stubs for existing external/baseline modules.
+
+[4] Delivered TypeScript inventory
+23 TS/TSX files across src/ and tests/; covered by the two compile checks above.
+
+[5] Source hygiene
+PASS: no TODO/TBD/FIXME/HACK placeholders.
+PASS: no protected Core files in patch (composer, validator, SongDNA, server/model routing, package.json).
+PASS: relative imports resolve inside patch or to known existing baseline-repository modules.
+
+[6] Important audit fixes included before packaging
+- Fixed missing note dynamics becoming MIDI velocity 1 (almost inaudible).
+- Fixed missing measure-number values falling to 0 instead of ordinal numbering.
+- Added percussion channel/midi-unpitched normalization.
+- Fixed schema order when transposition inserts <alter> into <pitch>.
+- Made MusicXML transform traversal/element creation namespace-aware.
+- Normalized edited metronome content to a simple valid quarter/per-minute representation.
+- Added rolling Web Audio look-ahead scheduling and node cleanup for long scores.
+- Added replay-from-end normalization, active-score identity reload, and OSMD measure cursor feedback.
+
+[7] Roadmap cross-check
+See docs/implementation/PLAYABLE_PRODUCT_AUDIT.md.
+Functional P0 playback/MIDI/WAV/Result Workspace/Firebase decoupling is implemented.
+SoundFont/SF2 instrument realism, full section/lyric editing, persisted revisions, and product-polish milestones remain intentionally NOT completed in this patch.
+
+[8] Environment limitation / required integration gate
+This isolated audit workspace does not contain the repository's full node_modules, so it cannot honestly certify full-repository `npm run lint` or `npm run build` here.
+After upload, AI Studio must ONLY run:
+  npm run lint
+  npm run build
+If either fails: STOP and return exact log; AI Studio must not edit code.
+
+[9] Required runtime smoke after integration
+- Composer without Firebase
+- Play/Pause/Seek/Stop
+- OSMD measure cursor
+- MIDI opened in MuseScore/DAW
+- WAV demo external playback
+- final arrangement playback/export
+- transpose/BPM/Undo
+- persistence failure isolation
+- History with Firebase configured
+- Lyria OFF independence
+- iPhone/iPad Safari playback and WAV render

@@ -1,0 +1,26 @@
+import fs from 'node:fs';
+function assert(condition:unknown,message:string):asserts condition{if(!condition)throw new Error(message);}
+const ui=fs.readFileSync('src/components/compose/AutoComposeProgress.tsx','utf8');
+const view=fs.readFileSync('src/views/ComposeView.tsx','utf8');
+const quality=fs.readFileSync('src/compose/production-quality.ts','utf8');
+const pack=fs.readFileSync('src/export/project-package.ts','utf8');
+const exportPanel=fs.readFileSync('src/components/workspace/ExportPanel.tsx','utf8');
+const service=fs.readFileSync('src/projects/project-service.ts','utf8');
+assert(ui.includes('estimatedTotalSeconds'),'progress UI must use adaptive ETA input');
+assert(ui.includes('lâu hơn dự kiến'),'ETA must switch to honest overdue wording instead of reaching fake zero');
+assert(ui.includes('Blocker cần xử lý'),'failed readiness must expose blockers');
+assert(ui.includes("event.kind==='halted'")||ui.includes("event.kind === 'halted'"),'halted pipeline state must be visible');
+assert(ui.includes('Production Readiness:'),'readiness wording must be unambiguous');
+assert(exportPanel.includes('Production Readiness:'),'Export panel must use readiness wording');
+assert(exportPanel.includes('getProductionCertificationState'),'Export panel must derive badge from exact-revision certification, not stale readiness evidence');
+assert(!exportPanel.includes('Production-ready composition:'),'Export panel must not call a FAIL state production-ready');
+assert(view.includes('recordEtaSample'),'successful runs must train future ETA');
+assert(view.includes('Bản phối cần rà soát'),'failed final candidate must be preservable as a review revision');
+assert(view.includes('Lead Sheet cần rà soát'),'failed Step 3 candidate must be distinguishable in revision history');
+assert(view.includes("pipelineVersion:'auto-production-v1.4.1'"),'project snapshot must preserve v1.4.1 pipeline provenance');
+assert(view.includes('isProductionCertificationCurrent'),'Studio downstream must be gated by current exact-revision certification');
+assert(service.includes('invalidateProductionCertification'),'revision creation must revoke stale certification while preserving evidence');
+for(const id of ['harmony-preservation','structure-preservation','part-coverage','score-instrument-pairs','unpitched-complexity'])assert(quality.includes(id),`quality contract missing ${id}`);
+assert(pack.includes('CERTIFICATION STALE'),'production package must expose stale certification rather than silently reusing PASS');
+assert(pack.includes('production/provenance.json'),'production package must export provenance');
+console.log('PASS production-resilience-ui-policy');

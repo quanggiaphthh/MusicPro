@@ -1,0 +1,11 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // For this AI Workspace, we allow read/write for now.
+    // In a production multi-user app, this should be restricted to authenticated users.
+    match /{document=**} {
+      allow read, write: if true;
+    }
+  }
+}

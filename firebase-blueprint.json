@@ -1,0 +1,35 @@
+{
+  "collections": {
+    "knowledge_docs": {
+      "description": "Stores the Markdown documents for the Knowledge Base (docs/m-guide/)",
+      "fields": {
+        "title": { "type": "string" },
+        "category": { "type": "string" },
+        "content": { "type": "string" },
+        "updatedAt": { "type": "timestamp" }
+      }
+    },
+    "runs": {
+      "description": "Stores the composition history and output MusicXML files",
+      "fields": {
+        "idea": { "type": "string" },
+        "style": { "type": "string" },
+        "metaPrompt": { "type": "string" },
+        "composePrompt": { "type": "string" },
+        "musicXml": { "type": "string" },
+        "status": { "type": "string" },
+        "createdAt": { "type": "timestamp" }
+      }
+    },
+    "upgrades": {
+      "description": "Stores the self-upgrade suggestions from the Improver agent",
+      "fields": {
+        "runId": { "type": "string" },
+        "suggestion": { "type": "string" },
+        "targetDoc": { "type": "string" },
+        "status": { "type": "string" },
+        "createdAt": { "type": "timestamp" }
+      }
+    }
+  }
+}

@@ -1,0 +1,13 @@
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import { execFileSync } from 'node:child_process';
+function assert(c:unknown,m:string):asserts c{if(!c)throw new Error(m);}
+function setup(server:string,runs:string){const dir=fs.mkdtempSync(path.join(os.tmpdir(),'musicpro-tampered-'));fs.mkdirSync(path.join(dir,'scripts'));fs.mkdirSync(path.join(dir,'src/views'),{recursive:true});fs.copyFileSync('scripts/apply-auto-production-v1.4.1.mjs',path.join(dir,'scripts/apply-auto-production-v1.4.1.mjs'));fs.writeFileSync(path.join(dir,'server.ts'),server);fs.writeFileSync(path.join(dir,'src/views/RunsView.tsx'),runs);return dir;}
+const goodRuns=`import { ResultWorkspace } from '../components/ResultWorkspace';\nimport { runArrangementProduction } from '../compose/arrangement-production-run';\nimport { bindProductionSnapshotToRevision } from '../compose/production-certification';\nasync function x(){\n      // PROJECT_ARRANGEMENT_PRODUCTION_V1_4_1\n      const result = await runArrangementProduction({});\n      const snapshot = bindProductionSnapshotToRevision({ pipelineVersion: 'project-arrangement-v1.4.1', qualityContractVersion: 'production-quality-v1.4.1' }, next.project.activeRevisionId);\n}`;
+let dir=setup(`import { prepareComposition, generateLeadSheet, generateArrangement } from "./server/music/composer";\nimport { createAutoProductionStreamHandler } from "./server/music/auto-production-stream";\n// AUTO_PRODUCTION_V1_4_1\napp.post("/api/compose/run-stream", foreignHandler);`,goodRuns);
+let failed=false;try{execFileSync(process.execPath,['scripts/apply-auto-production-v1.4.1.mjs'],{cwd:dir,stdio:'pipe'});}catch{failed=true;}assert(failed,'current server marker must not hide a tampered/foreign handler');
+const goodServer=`import { prepareComposition, generateLeadSheet, generateArrangement } from "./server/music/composer";\nimport { createAutoProductionStreamHandler } from "./server/music/auto-production-stream";\n// AUTO_PRODUCTION_V1_4_1\napp.post("/api/compose/run-stream", createAutoProductionStreamHandler({ prepareComposition, generateLeadSheet, generateArrangement, analyze:()=>({}) }));`;
+dir=setup(goodServer,`import { ResultWorkspace } from '../components/ResultWorkspace';\n// PROJECT_ARRANGEMENT_PRODUCTION_V1_4_1\nconst result = foreignArrangementRunner();`);
+failed=false;try{execFileSync(process.execPath,['scripts/apply-auto-production-v1.4.1.mjs'],{cwd:dir,stdio:'pipe'});}catch{failed=true;}assert(failed,'current RunsView marker must not hide a tampered arrangement block');
+console.log('PASS installer-tampered-marker');

@@ -1,0 +1,467 @@
+# Catalog — mục lục máy đọc được
+
+# Quy tắc:
+# - path tính từ root repo
+# - tags: compose | arrange | musicxml | lyrics | melody | harmony | rhythm-form | vocal | vietnamese | style | pipeline | meta | prompt
+# - AI dựng URL: REPO_RAW + "/" + path (xem meta/link-scheme.md)
+# - Cấm path dưới archive/
+
+version: "1.10"
+updated: "2026-09-08"
+
+pages:
+  - id: META.PURPOSE
+    path: docs/m-guide/meta/purpose.md
+    tags: [meta]
+    serves-steps: [1, 2, 3, 4]
+    summary: Mục đích hai chức năng của kho
+
+  - id: META.STANDARDS
+    path: docs/m-guide/meta/standards.md
+    tags: [meta]
+    serves-steps: [1, 2, 3, 4]
+    summary: Quy chuẩn nhận trang, constraint vs hint
+
+  - id: META.PAGE-TEMPLATE
+    path: docs/m-guide/meta/page-template.md
+    tags: [meta]
+    serves-steps: [1, 2, 3, 4]
+    summary: Template trang knowledge
+
+  - id: META.LINK-SCHEME
+    path: docs/m-guide/meta/link-scheme.md
+    tags: [meta, github]
+    serves-steps: [1, 2, 3, 4]
+    summary: Dựng URL GitHub từ path
+
+  - id: META.ARCHIVE-POLICY
+    path: docs/m-guide/meta/archive-policy.md
+    tags: [meta]
+    serves-steps: [1, 2, 3, 4]
+    summary: Archive không dùng sáng tác
+
+  - id: META.SONG-REQUEST-SCHEMA
+    path: docs/m-guide/meta/song-request-schema.md
+    tags: [meta, compose]
+    serves-steps: [2, 3, 4]
+    summary: Schema yêu cầu bài hát dùng chung
+
+  - id: META.GUIDE-COMPOSE
+    path: docs/m-guide/guides/chuc-nang-1-sang-tac.md
+    tags: [meta, compose, guide]
+    serves-steps: [1, 2, 3, 4]
+    summary: Hướng dẫn người dùng Chức năng 1 — sáng tác + prompt mẫu
+
+  - id: PIPE.OVERVIEW
+    path: docs/m-guide/pipeline/overview.md
+    tags: [pipeline]
+    serves-steps: [1, 2, 3, 4]
+    summary: Tổng quan 4 bước
+
+  - id: PIPE.STEP-01
+    path: docs/m-guide/pipeline/step-01-meta-prompt.md
+    tags: [pipeline]
+    serves-steps: [1]
+    summary: Playbook Bước 1 meta-prompt
+
+  - id: PIPE.STEP-02
+    path: docs/m-guide/pipeline/step-02-specialized-prompts.md
+    tags: [pipeline]
+    serves-steps: [2]
+    summary: Playbook Bước 2 hai prompt + DOC_REFS
+
+  - id: PIPE.STEP-03
+    path: docs/m-guide/pipeline/step-03-compose.md
+    tags: [pipeline, compose]
+    serves-steps: [3]
+    summary: Playbook Bước 3 — lead sheet một lượt + quality gate (gồm REQUIRE_PIANO_TEXTURE) + piano reduction nghe được
+
+  - id: PIPE.STEP-04
+    path: docs/m-guide/pipeline/step-04-arrange.md
+    tags: [pipeline, arrange]
+    serves-steps: [4]
+    summary: Playbook Bước 4 — phối khí; lock progression; bắt buộc rewrite/bù piano nếu pad; Flat + piano_texture_check
+
+  - id: PIPE.MERGE-POLICY
+    path: docs/m-guide/pipeline/merge-policy.md
+    tags: [pipeline]
+    serves-steps: [1, 2, 3, 4]
+    summary: Merge proposed vào kho gốc chỉ khi user yêu cầu
+
+  - id: CRAFT.README
+    path: docs/m-guide/prompt-craft/README.md
+    tags: [prompt-craft]
+    serves-steps: [1]
+    summary: Guide prompt craft Bước 1
+
+  - id: CRAFT.PRINCIPLES
+    path: docs/m-guide/prompt-craft/principles.md
+    tags: [prompt-craft]
+    serves-steps: [1]
+    summary: Nguyên tắc meta-prompt
+
+  - id: CRAFT.OUTPUT-CONTRACT
+    path: docs/m-guide/prompt-craft/output-contract.md
+    tags: [prompt-craft]
+    serves-steps: [1]
+    summary: Hợp đồng đầu ra meta-prompt
+
+  - id: KNOW.LYRICS.CRAFT
+    path: docs/m-guide/knowledge/lyrics/craft.md
+    tags: [compose, lyrics]
+    serves-steps: [3]
+    summary: Viết lời, tứ thơ, hook
+
+  - id: KNOW.LYRICS.PROSODY-RHYME
+    path: docs/m-guide/knowledge/lyrics/prosody-and-rhyme.md
+    tags: [compose, lyrics]
+    serves-steps: [3]
+    summary: Prosody, rhyme và trọng âm khi viết lời
+
+  - id: KNOW.LYRICS.HOOK-PRECHORUS-BRIDGE
+    path: docs/m-guide/knowledge/lyrics/hook-prechorus-bridge.md
+    tags: [compose, lyrics, melody, rhythm-form]
+    serves-steps: [3]
+    summary: Chức năng hook, pre-chorus và bridge khi viết lời/giai điệu
+
+  - id: KNOW.LYRICS.LYRIC-MELODY-FIT
+    path: docs/m-guide/knowledge/lyrics/lyric-melody-fit.md
+    tags: [compose, lyrics, melody, vietnamese]
+    serves-steps: [3]
+    summary: Khớp lời–nhạc — stress↔beat, speak-test, VN tone transitions
+
+  - id: KNOW.MELODY.CONTOUR
+    path: docs/m-guide/knowledge/melody/contour.md
+    tags: [compose, melody]
+    serves-steps: [3]
+    summary: Contour và motif giai điệu
+
+  - id: KNOW.MELODY.PHRASE-STRUCTURE
+    path: docs/m-guide/knowledge/melody/phrase-structure.md
+    tags: [compose, melody]
+    serves-steps: [3]
+    summary: Phrase, cadence và điểm nhấn giai điệu
+
+  - id: KNOW.MELODY.MOTIF-DEVELOPMENT
+    path: docs/m-guide/knowledge/melody/motif-development.md
+    tags: [compose, melody]
+    serves-steps: [3]
+    summary: Phát triển motif và sequence trong giai điệu
+
+  - id: KNOW.MELODY.INVENTION
+    path: docs/m-guide/knowledge/melody/melody-invention.md
+    tags: [compose, melody]
+    serves-steps: [3]
+    summary: Tự sáng tác giai điệu — cấm điền lời vào skeleton mẫu
+
+  - id: KNOW.MELODY.COMPOSITION-PLANNING
+    path: docs/m-guide/knowledge/melody/composition-planning.md
+    tags: [compose, melody, lyrics]
+    serves-steps: [3]
+    summary: Checklist nội bộ trước khi khóa lead sheet (không file 03a)
+
+  - id: KNOW.MELODY.ANTI-PATTERNS
+    path: docs/m-guide/knowledge/melody/anti-patterns.md
+    tags: [compose, melody]
+    serves-steps: [3]
+    summary: Anti-pattern giai điệu — lặp skeleton, bridge giả, tone offset máy móc
+
+  - id: KNOW.MELODY.QUALITY-GATE
+    path: docs/m-guide/knowledge/melody/musical-quality-gate.md
+    tags: [compose, melody, lyrics, vietnamese]
+    serves-steps: [3]
+    summary: Music quality gate PASS/FAIL trước khi coi Bước 3 xong (gồm REQUIRE_PIANO_TEXTURE)
+
+  - id: KNOW.HARMONY.BASICS
+    path: docs/m-guide/knowledge/harmony/basics.md
+    tags: [compose, harmony]
+    serves-steps: [3, 4]
+    summary: Hòa âm cơ bản cho bài hát
+
+  - id: KNOW.HARMONY.PIANO-REDUCTION
+    path: docs/m-guide/knowledge/harmony/piano-reduction.md
+    tags: [compose, arrange, harmony]
+    serves-steps: [3, 4]
+    summary: Lead-sheet piano vs arranged piano — cấm pad; gate + step4 piano_texture_check
+
+  - id: KNOW.HARMONY.FUNCTIONAL-CADENCE-VOICING
+    path: docs/m-guide/knowledge/harmony/functional-cadence-and-voicing.md
+    tags: [compose, arrange, harmony, arrangement]
+    serves-steps: [3, 4]
+    summary: Chức năng hòa âm, cadence và voicing
+
+  - id: KNOW.HARMONY.MODULATION
+    path: docs/m-guide/knowledge/harmony/modulation.md
+    tags: [compose, arrange, harmony]
+    serves-steps: [3, 4]
+    summary: Kỹ thuật chuyển giọng trong bài hát
+
+  - id: KNOW.HARMONY.CHORD-SUBSTITUTION
+    path: docs/m-guide/knowledge/harmony/chord-substitution.md
+    tags: [compose, arrange, harmony]
+    serves-steps: [3, 4]
+    summary: Thay thế hợp âm và hợp âm mở rộng
+
+  - id: KNOW.HARMONY.MODAL-PENTATONIC-VI
+    path: docs/m-guide/knowledge/harmony/modal-pentatonic-vietnamese.md
+    tags: [compose, harmony, melody, vietnamese]
+    serves-steps: [3]
+    summary: Mode, ngũ cung và chất liệu dân ca (hint)
+
+  - id: KNOW.RHYTHM.FORM
+    path: docs/m-guide/knowledge/rhythm-form/form-and-tempo.md
+    tags: [compose, rhythm-form]
+    serves-steps: [3]
+    summary: Tempo, meter, song form
+
+  - id: KNOW.RHYTHM.GROOVE-SYNCOPATION
+    path: docs/m-guide/knowledge/rhythm-form/groove-and-syncopation.md
+    tags: [compose, rhythm-form, lyrics, melody]
+    serves-steps: [3]
+    summary: Pulse, groove, syncopation và lyric stress
+
+  - id: KNOW.RHYTHM.PATTERNS
+    path: docs/m-guide/knowledge/rhythm-form/rhythmic-patterns.md
+    tags: [compose, rhythm-form, lyrics, melody]
+    serves-steps: [3]
+    summary: Mẫu nhịp điệu theo section trong sáng tác
+
+  - id: KNOW.VOCAL.WRITING
+    path: docs/m-guide/knowledge/vocal/writing.md
+    tags: [compose, vocal]
+    serves-steps: [3]
+    summary: Viết bè hát và gắn lyric
+
+  - id: KNOW.VOCAL.PHRASING-BREATH-MELISMA
+    path: docs/m-guide/knowledge/vocal/phrasing-breath-and-melisma.md
+    tags: [compose, vocal, lyrics, melody]
+    serves-steps: [3]
+    summary: Phrasing, breath, sustain và melisma
+
+  - id: KNOW.VOCAL.BACKING-HARMONIES
+    path: docs/m-guide/knowledge/vocal/backing-harmonies.md
+    tags: [arrange, vocal]
+    serves-steps: [4]
+    summary: Bè hát / backing vocal khi phối khí
+
+  - id: KNOW.VOCAL.TECHNIQUES
+    path: docs/m-guide/knowledge/vocal/techniques.md
+    tags: [compose, vocal, lyrics, melody]
+    serves-steps: [3]
+    summary: Ornament, tessitura và màu kỹ thuật thanh nhạc
+
+  - id: KNOW.VI.TONE-MELODY
+    path: docs/m-guide/knowledge/vietnamese/tone-melody.md
+    tags: [compose, vietnamese, lyrics, melody]
+    serves-steps: [3]
+    summary: Thanh điệu tiếng Việt khớp giai điệu (chi tiết)
+
+  - id: KNOW.VI.RHYME-METER
+    path: docs/m-guide/knowledge/vietnamese/rhyme-meter.md
+    tags: [compose, vietnamese, lyrics]
+    serves-steps: [3]
+    summary: Vần và thể thơ tiếng Việt trong lời bài hát
+
+  - id: KNOW.VI.SYLLABLE-PRIORITY
+    path: docs/m-guide/knowledge/vietnamese/syllable-priority.md
+    tags: [compose, vietnamese, lyrics, melody, vocal]
+    serves-steps: [3]
+    summary: Ưu tiên khi âm tiết, thanh điệu và melody xung đột
+
+  - id: KNOW.ARR.ORCHESTRATION
+    path: docs/m-guide/knowledge/arrangement/orchestration.md
+    tags: [arrange, arrangement]
+    serves-steps: [4]
+    summary: Nguyên tắc phối khí layering
+
+  - id: KNOW.ARR.GENRE-TEXTURES
+    path: docs/m-guide/knowledge/arrangement/genre-textures.md
+    tags: [arrange, compose, arrangement]
+    serves-steps: [3, 4]
+    summary: Hint texture theo hướng thể loại
+
+  - id: KNOW.ARR.INSTRUMENT-ROLES-REGISTER
+    path: docs/m-guide/knowledge/arrangement/instrument-roles-and-register.md
+    tags: [arrange, arrangement]
+    serves-steps: [4]
+    summary: Phân vai, register và collision giữa các layer
+
+  - id: KNOW.ARR.SECTION-ENERGY
+    path: docs/m-guide/knowledge/arrangement/section-energy.md
+    tags: [arrange, arrangement, compose]
+    serves-steps: [3, 4]
+    summary: Framework energy và density theo section
+
+  - id: KNOW.ARR.DYNAMICS-STRUCTURE
+    path: docs/m-guide/knowledge/arrangement/dynamics-and-structure.md
+    tags: [arrange, arrangement, compose]
+    serves-steps: [3, 4]
+    summary: Động lực ký hiệu và tương phản texture theo section
+
+  - id: KNOW.ARR.DRUM-BASS-PATTERNS
+    path: docs/m-guide/knowledge/arrangement/drum-bass-patterns.md
+    tags: [arrange, arrangement, rhythm-form]
+    serves-steps: [4]
+    summary: Pattern trống và bass theo section (hint)
+
+  - id: KNOW.ARR.INTRO-OUTRO-TRANSITION
+    path: docs/m-guide/knowledge/arrangement/intro-outro-transition.md
+    tags: [arrange, arrangement, compose, rhythm-form]
+    serves-steps: [3, 4]
+    summary: Intro, outro và transition giữa các section
+
+  - id: KNOW.MUSICXML.RULES
+    path: docs/m-guide/knowledge/musicxml/rules.md
+    tags: [compose, arrange, musicxml]
+    serves-steps: [3, 4]
+    summary: Quy tắc xuất MusicXML 4.0 (profile kho)
+
+  - id: KNOW.MUSICXML.CANONICAL
+    path: docs/m-guide/knowledge/musicxml/canonical-source.md
+    tags: [compose, arrange, musicxml]
+    serves-steps: [3, 4]
+    summary: Nguồn chuẩn W3C MusicXML 4.0 — không viết từ điển riêng
+
+  - id: KNOW.MUSICXML.SAFE-PATTERNS
+    path: docs/m-guide/knowledge/musicxml/safe-patterns.md
+    tags: [compose, arrange, musicxml]
+    serves-steps: [3, 4]
+    summary: Mẫu XML an toàn (direction, score-instrument, subset)
+
+  - id: KNOW.MUSICXML.IMPORTER-PROFILE
+    path: docs/m-guide/knowledge/musicxml/importer-profile.md
+    tags: [compose, arrange, musicxml]
+    serves-steps: [3, 4]
+    summary: Lỗi Flat/importer đã gặp — direction-type, drums
+
+  - id: KNOW.MUSICXML.ANTI-PATTERNS
+    path: docs/m-guide/knowledge/musicxml/anti-patterns.md
+    tags: [compose, arrange, musicxml]
+    serves-steps: [3, 4]
+    summary: Anti-pattern MusicXML cấm (direction-type lẫn, thiếu score-instrument)
+
+  - id: KNOW.MUSICXML.STRUCTURE-VOICES
+    path: docs/m-guide/knowledge/musicxml/structure-and-voices.md
+    tags: [compose, arrange, musicxml]
+    serves-steps: [3, 4]
+    summary: Structure, voices và continuity trong MusicXML
+
+  - id: KNOW.MUSICXML.LYRICS-AND-NOTATIONS
+    path: docs/m-guide/knowledge/musicxml/lyrics-and-notations.md
+    tags: [compose, arrange, musicxml, lyrics, vocal]
+    serves-steps: [3, 4]
+    summary: Lyric alignment và notation semantics
+
+  - id: KNOW.MUSICXML.LYRICS-ENCODING
+    path: docs/m-guide/knowledge/musicxml/lyrics-encoding.md
+    tags: [compose, musicxml, lyrics]
+    serves-steps: [3]
+    summary: Cú pháp lyric syllabic / extend / elision trong MusicXML
+
+  - id: KNOW.MUSICXML.PERFORMANCE-MARKINGS
+    path: docs/m-guide/knowledge/musicxml/performance-markings.md
+    tags: [compose, arrange, musicxml]
+    serves-steps: [3, 4]
+    summary: Mã hóa dynamics / articulation / phrasing (nhóm PERFORMANCE)
+
+  - id: KNOW.MUSICXML.VALIDATION-CHECKLIST
+    path: docs/m-guide/knowledge/musicxml/validation-checklist.md
+    tags: [compose, arrange, musicxml]
+    serves-steps: [3, 4]
+    summary: Checklist structural và semantic trước khi trả file
+
+  - id: STYLE.TEMPLATE
+    path: docs/m-guide/knowledge/styles/_template.md
+    tags: [style]
+    serves-steps: [2, 3, 4]
+    summary: Template thẻ phong cách
+
+  - id: STYLE.VN.HEROIC-MARCH
+    path: docs/m-guide/knowledge/styles/vn-heroic-march.md
+    tags: [style, compose, arrange]
+    serves-steps: [3, 4]
+    summary: Thẻ khái quát hành khúc / khí thế Việt
+
+  - id: STYLE.POP.BALLAD-GENERIC
+    path: docs/m-guide/knowledge/styles/pop-ballad-generic.md
+    tags: [style, compose, arrange]
+    serves-steps: [3, 4]
+    summary: Thẻ khái quát pop ballad
+
+  - id: STYLE.VN.VPOP-BALLAD
+    path: docs/m-guide/knowledge/styles/vn-vpop-ballad.md
+    tags: [style, compose, arrange, vietnamese]
+    serves-steps: [3, 4]
+    summary: Thẻ phong cách ballad V-Pop đương đại
+
+  - id: STYLE.VN.BOLERO-TRU-TINH
+    path: docs/m-guide/knowledge/styles/vn-bolero-tru-tinh.md
+    tags: [style, compose, arrange, vietnamese]
+    serves-steps: [3, 4]
+    summary: Thẻ bolero / nhạc vàng / trữ tình cũ
+
+  - id: STYLE.VN.DAN-CA-CONTEMPORARY
+    path: docs/m-guide/knowledge/styles/vn-dan-ca-contemporary.md
+    tags: [style, compose, arrange, vietnamese]
+    serves-steps: [3, 4]
+    summary: Thẻ dân ca đương đại / ngũ cung pha Tây
+
+  - id: STYLE.VN.VPOP-UPTEMPO
+    path: docs/m-guide/knowledge/styles/vn-vpop-uptempo.md
+    tags: [style, compose, arrange, vietnamese]
+    serves-steps: [3, 4]
+    summary: Thẻ V-Pop uptempo / nhạc trẻ
+
+  - id: STYLE.VN.ACOUSTIC-INDIE
+    path: docs/m-guide/knowledge/styles/vn-acoustic-indie.md
+    tags: [style, compose, arrange, vietnamese]
+    serves-steps: [3, 4]
+    summary: Thẻ acoustic / indie Việt nhẹ
+
+  - id: STYLE.EDM.DANCE-POP-GENERIC
+    path: docs/m-guide/knowledge/styles/edm-dance-pop-generic.md
+    tags: [style, compose, arrange]
+    serves-steps: [3, 4]
+    summary: Thẻ EDM / dance-pop generic
+
+  - id: STYLE.RNB.SOUL-GENERIC
+    path: docs/m-guide/knowledge/styles/rnb-soul-generic.md
+    tags: [style, compose, arrange]
+    serves-steps: [3, 4]
+    summary: Thẻ R&B / soul generic
+
+  - id: STYLE.JAZZ.POP-LIGHT
+    path: docs/m-guide/knowledge/styles/jazz-pop-light.md
+    tags: [style, compose, arrange]
+    serves-steps: [3, 4]
+    summary: Thẻ jazz-pop nhẹ
+
+  - id: STYLE.VN.HIPHOP-MELODIC
+    path: docs/m-guide/knowledge/styles/hiphop-melodic.md
+    tags: [style, compose, arrange, vietnamese]
+    serves-steps: [3, 4]
+    summary: Thẻ hip-hop melodic / rap-pop Việt
+
+  - id: STYLE.FOLK.ACOUSTIC-GENERIC
+    path: docs/m-guide/knowledge/styles/folk-acoustic-generic.md
+    tags: [style, compose, arrange]
+    serves-steps: [3, 4]
+    summary: Thẻ folk acoustic generic
+
+  - id: STYLE.ROCK.GENERIC
+    path: docs/m-guide/knowledge/styles/rock-generic.md
+    tags: [style, compose, arrange]
+    serves-steps: [3, 4]
+    summary: Thẻ khái quát rock guitar-driven
+
+  - id: PROMPT.CURATOR
+    path: docs/m-guide/prompts/curator.md
+    tags: [prompt]
+    serves-steps: [1, 2, 3, 4]
+    summary: Playbook curator bổ sung kho
+
+  - id: PROMPT.IMPROVER
+    path: docs/m-guide/prompts/improver.md
+    tags: [prompt]
+    serves-steps: [1, 2, 3, 4]
+    summary: Playbook improver sau lần chạy hỏng

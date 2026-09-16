@@ -1,0 +1,29 @@
+Verification performed locally before packaging:
+
+TDD RED:
+- arrangement-resume.test.ts initially failed with ERR_MODULE_NOT_FOUND because production helper did not exist.
+- Added lead-action behavior test; it initially failed because isArrangementSourceRevision was not exported.
+
+TDD GREEN:
+- arrangement-resume tests: PASS
+  * canonical lead revision resolution
+  * old project without context detection
+  * valid prepare context normalization
+  * immutable composition-context persistence helper
+  * invalid arrangePrompt rejection
+  * arrangement action visible only on canonical Lead Sheet revision
+
+Syntax checks via TypeScript transpileModule: PASS
+- src/components/ResultWorkspace.tsx
+- src/views/RunsView.tsx
+- src/views/ComposeView.tsx
+- src/projects/types.ts
+- src/projects/arrangement-resume.ts
+
+Static wiring checks: PASS
+- ResultWorkspace contains Phối khí action
+- RunsView calls /api/compose/prepare fallback
+- RunsView calls /api/compose/arrange
+- ComposeView persists composition context for future resume
+
+Full workspace lint/build must be run in the current AI Studio workspace because this hotfix is an overlay package, not a standalone repository.

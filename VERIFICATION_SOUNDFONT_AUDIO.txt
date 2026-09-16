@@ -1,0 +1,36 @@
+Music-Pro SoundFont Audio Quality Patch — Verification
+Date: 2026-09-16
+Base GitHub main: a8fc93552a8e099fca86b6f6d9160008a9d24f50
+
+SCOPE
+- Improve deterministic preview/WAV instrument realism with sampled SoundFont rendering.
+- Preserve HTMLAudioElement playback path already verified on iPad embedded Preview.
+- Preserve current lightweight renderer as automatic fallback.
+- Do not change Core Composer, validator, SongDNA or Lyria.
+
+TDD EVIDENCE
+1) instrument-program.test.ts was executed before implementation and failed with ERR_MODULE_NOT_FOUND (RED).
+2) src/music/instrument-program.ts was implemented; the same test then passed (GREEN).
+3) audio-render-policy.test.ts was executed before implementation and failed with ERR_MODULE_NOT_FOUND (RED).
+4) src/audio/render-policy.ts was implemented; the same test then passed (GREEN).
+
+FRESH LOCAL VERIFICATION
+- instrument-program.test.ts: PASS
+- audio-render-policy.test.ts: PASS
+- strict TypeScript check of all changed audio/music modules using local interface stubs: PASS
+- package.json JSON syntax: to be checked again before ZIP finalization
+
+UPSTREAM API BASIS
+- spessasynth_core pinned to 4.3.22.
+- Implementation follows the project's current MIDI-to-WAV example APIs:
+  BasicMIDI.fromArrayBuffer
+  SoundBankLoader.fromArrayBuffer
+  SpessaSynthProcessor
+  SpessaSynthSequencer
+  audioToWav
+
+RUNTIME BOUNDARY
+- The actual dependency install, Vite production build and real SoundFont render cannot be executed in this container because outbound package installation is unavailable.
+- AI Studio must only install dependencies and run lint/build; it must not rewrite source code.
+- Runtime SoundFont quality must be manually verified after integration on the same iPad embedded Preview where HTMLAudioElement playback already passed.
+- If the SoundFont or renderer is unavailable, production code falls back to the previously verified basic renderer.

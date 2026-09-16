@@ -1,0 +1,53 @@
+Music-Pro Auto Production Pipeline v1.4.1 — Pre-flight Verification
+Date: 2026-09-16
+Base GitHub main: 6608e1e2fa620fd71f3356e063bac862ede6fdc5
+
+Fresh verification on the v1.4.1 package source:
+- compose test files: PASS (47/47)
+- music package/policy test files: PASS (2/2)
+- total independent overlay test files: PASS (49/49)
+- project-package functional test in base-compatible harness: PASS
+- Score Theater backward-seek/rest-gap functional helper test: PASS
+- TypeScript transpile/syntax: PASS (73 TS/TSX files, 0 diagnostics)
+- semantic TypeScript check for compose/server-stream overlay: PASS
+
+Installer / upgrade safety:
+- installer exact SHA 6608 anchor: PASS
+- installer idempotence: PASS
+- installer upgrade v1.2 -> v1.4.1: PASS
+- installer upgrade v1.3 -> v1.4.1: PASS
+- installer upgrade v1.4 -> v1.4.1: PASS
+- foreign /api/compose/run-stream fail-closed guard: PASS
+- tampered current-marker fail-closed guard: PASS
+
+Production contract hardening:
+- ambiguous stream transport does NOT start a duplicate legacy generation: PASS
+- explicit short/demo/sketch contract is respected by composition + arrangement gates: PASS
+- full-song completeness rules remain unchanged: PASS
+- exact importer measure-grid check: PASS
+- unique part-id check: PASS
+- Pre-Chorus is not classified as Chorus: PASS
+- required weak checks cannot false-PASS: PASS
+- production readiness thresholds align with retry gates: PASS
+- revision-bound certification / stale evidence separation: PASS
+- Production ZIP stale evidence is separated from current MASTER evidence: PASS
+
+Scope / regression safety:
+- protected Composer/validator/SongDNA files absent from overlay: PASS
+- MusicXMLViewer.tsx and ScorePlayer.tsx absent from overlay: PASS
+- raw client /api/compose/arrange bypass scan: PASS
+- no git commit/push or auto-fix instructions in upload workflow: PASS
+
+Not proven locally; MUST run in AI Studio workspace before Product V1 acceptance:
+- full npm run lint
+- full npm run build
+- Gemini live runtime
+- server NDJSON behavior in the actual AI Studio runtime
+- iPad end-to-end Score Theater + SoundFont/audio acceptance
+
+Known bounded limitations (not hidden):
+- provider-level cancellation of an already-running protected Composer/Gemini call is not guaranteed; client/stream cancellation prevents subsequent pipeline stages.
+- Vietnamese tone-melody/prosody semantic quality is guided by mandatory canonical KB but is not claimed as machine-proven without richer lyric-note-beat/semantic evidence.
+- READY FOR PRODUCTION means production-ready composition/handoff, not commercial mixed/mastered audio.
+
+No GitHub commit/push performed.

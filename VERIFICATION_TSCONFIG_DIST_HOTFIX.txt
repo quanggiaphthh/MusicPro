@@ -1,0 +1,10 @@
+Verification performed locally with TypeScript 5.8.3:
+
+1. Recreated the repository's previous tsconfig behavior with allowJs=true and no exclude.
+2. Added a generated file at dist/assets/generated.js.
+3. `tsc --listFilesOnly` included the generated dist file (RED evidence).
+4. Added exclude=["dist","node_modules"].
+5. `tsc --listFilesOnly` no longer included the generated dist file (GREEN evidence).
+
+This proves the configuration change removes dist from the TypeScript program.
+It does NOT claim the full AI Studio `npm run lint` or `npm run build` passes; those commands must be rerun in the full workspace.

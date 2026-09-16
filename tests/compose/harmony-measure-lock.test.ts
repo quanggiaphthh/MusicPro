@@ -1,0 +1,9 @@
+import { evaluateArrangementQuality } from '../../src/compose/production-quality.ts';
+function assert(c:unknown,m:string):asserts c{if(!c)throw new Error(m)}
+const melody=Array.from({length:160},(_,i)=>({midi:60+(i%8),duration:1,measure:1+Math.floor(i/5)}));
+const lead:any={musical:{approximateDuration:190,tempoBpm:76,timeSignature:'4/4',key:'C',mode:'major'},lyrics:{assembledLyric:'quê hương trong tôi vẫn còn nguyên một dòng sông'},structure:[{sectionName:'Verse',measureStart:1,measureEnd:8},{sectionName:'Chorus',measureStart:9,measureEnd:16},{sectionName:'Bridge',measureStart:17,measureEnd:24},{sectionName:'Final Chorus',measureStart:25,measureEnd:32}],harmony:[{measure:1,chordSymbols:['C']},{measure:2,chordSymbols:['G']}],melody,instrumentation:[{partName:'Vocal'},{partName:'Piano'},{partName:'Bass'},{partName:'Strings'}],fingerprint:{chorusMotif:['C4','D4','E4'],midiSequence:melody.map(n=>n.midi)}};
+const arranged={...lead,harmony:[{measure:1,chordSymbols:['G']},{measure:2,chordSymbols:['C']} ]};
+const xml='<score-partwise><part-list><score-part id="P1"><part-name>Vocal</part-name></score-part><score-part id="P2"><part-name>Piano</part-name></score-part><score-part id="P3"><part-name>Bass</part-name></score-part><score-part id="P4"><part-name>Strings</part-name></score-part></part-list>'+['P1','P2','P3','P4'].map(id=>`<part id="${id}">${Array.from({length:32},(_,i)=>`<measure number="${i+1}"><note><pitch><step>C</step><octave>4</octave></pitch><duration>1</duration></note><note><pitch><step>E</step><octave>4</octave></pitch><duration>1</duration></note></measure>`).join('')}</part>`).join('')+'</score-partwise>';
+const report=evaluateArrangementQuality({xml,songDna:arranged,leadDna:lead,leadXml:xml});
+assert(report.checks.find(x=>x.id==='harmony-preservation')?.status==='fail','same chord multiset in wrong measures must fail harmony lock');
+console.log('PASS harmony-measure-lock');

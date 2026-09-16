@@ -1,0 +1,35 @@
+Music-Pro Live Audio Media Transport Fix — Verification
+Date: 2026-09-16
+Base: 5b1ee1bce75e18f015cf8956b0034fbe47e62ab2
+
+Observed runtime evidence before fix:
+- Live score progress advances: YES
+- Live audible output: NO
+- Downloaded WAV audible: YES
+- User-supplied demo WAV independently inspected:
+  duration ~2.35 s; sample rate 32000 Hz; mono; non-zero RMS; dominant frequency ~261.5 Hz (C4)
+
+Root-cause boundary:
+- MusicXML parser/timeline/synth/offline WAV path: produces audible signal
+- Direct Web Audio destination live transport: failing boundary in current embedded iPad Preview
+
+TDD evidence:
+RED:
+- media-playback-engine test initially failed because module did not exist (TS2307).
+GREEN:
+- media-playback-engine test passes after implementation.
+
+Fresh deterministic test run:
+- score-timeline.test.ts: PASS
+- midi-export.test.ts: PASS
+- musicxml-transform.test.ts: PASS
+- playback-helpers.test.ts: PASS
+- score-id.test.ts: PASS
+- media-playback-engine.test.ts: PASS
+
+Fresh TypeScript integration check with React/lucide interface stubs:
+- media-playback-engine + offline renderer + synth + timeline + AudioContext + ScorePlayer: PASS
+
+Not claimed here:
+- full repository npm lint/build (must run in AI Studio after apply)
+- audible runtime playback after fix (must be manually re-tested by user)

@@ -1,0 +1,30 @@
+MUSIC-PRO KNOWLEDGE BASE UNIFICATION — LOCAL VERIFICATION
+Date: 2026-09-16
+
+TDD RED:
+- tests/server/knowledge-admin-core.test.ts initially failed because knowledge-admin-core did not exist.
+
+TDD GREEN:
+- knowledge admin core tests: PASS
+  * category mapping
+  * markdown title extraction
+  * canonical path resolution
+  * path traversal rejection
+  * query / step / tag / category filtering
+
+TYPE VERIFICATION:
+- changed Knowledge client/service/types with React stubs: PASS
+- canonical server knowledge loader/admin modules with dependency stubs: PASS
+- full changed server.ts integration with local module stubs: PASS
+- full changed App.tsx + KnowledgeView integration with local module stubs: PASS
+
+STATIC INVARIANTS:
+- Knowledge service contains no Firebase dependency: PASS
+- placeholder seed call removed from KnowledgeView: PASS
+- Knowledge screen no longer Firebase-gated in App: PASS
+- canonical catalog/document/save API routes present: PASS
+- Composer protected files absent from patch: PASS
+- package.json absent from patch: PASS
+
+BOUNDARY:
+Full `npm run lint` and `npm run build` must be run in AI Studio on the complete project after applying this hotfix. Runtime UI/API behavior must then be accepted manually.

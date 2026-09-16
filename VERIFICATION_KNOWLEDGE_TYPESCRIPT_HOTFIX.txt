@@ -1,0 +1,21 @@
+MUSIC-PRO KNOWLEDGE TYPESCRIPT HOTFIX — VERIFICATION
+Date: 2026-09-16
+
+RED EVIDENCE:
+- Full AI Studio project lint failed with TS2339 at KnowledgeView.tsx docs.map because Object.entries value was unknown.
+
+ROOT CAUSE:
+- Type inference boundary at Object.entries(groupedDocs).
+
+PATCH SCOPE:
+- src/views/KnowledgeView.tsx only (production source)
+- documentation/checksum files in this package
+
+LOCAL VERIFICATION:
+- patched KnowledgeView + Product V1 types + canonical knowledge client compiled in local integration harness: PASS
+- source diff inspected: typing-only change around grouped document entries
+- protected Composer Core files absent: PASS
+- package.json absent: PASS
+
+BOUNDARY:
+- Full npm run lint and npm run build must be rerun in AI Studio after applying this hotfix.

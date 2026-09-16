@@ -1,0 +1,41 @@
+{
+  "songRequest": {
+    "concept": "Nỗi nhớ nhà của người đi xa, khao khát được trở về không gian bình yên bên gia đình",
+    "emotion": "Sâu lắng, ấm áp, hoài niệm, da diết nhưng không bi lụy",
+    "genre": "V-Pop Ballad",
+    "arrangementDirection": "Phối khí tinh tế theo phong cách acoustic-electronic blend, ưu tiên piano, acoustic guitar, strings pad và rhythm section nhẹ ở verse, dày dần lên ở pre-chorus và bùng nổ cảm xúc với strings ở điệp khúc",
+    "constraints": "Giữ đúng nhịp độ ballad từ 65-80 BPM, không sao chép giai điệu hay lời ca của bất kỳ bài hát có bản quyền nào",
+    "harmonyDirection": "Hòa âm hiện đại V-Pop Ballad với vòng hòa thanh giàu cảm xúc, có các quãng chuyển và biến thể mượt mà ở pre-chorus và bridge",
+    "language": "Tiếng Việt",
+    "lyricDirection": "Tự nhiên, dễ hát, giàu hình ảnh miêu tả (con đường nhỏ, hàng cau, vườn cây, cơn mưa, dáng cha hao gầy), có vần điệu nội tại và câu hook rõ ràng ở điệp khúc",
+    "melodyDirection": "Giai điệu trữ tình, bước liền ở verse, mở rộng quãng và nâng register ở điệp khúc để tạo cao trào",
+    "rhythmDirection": "Nhịp 4/4 đều đặn, feel mượt mà, phù hợp với nhịp điệu tự sự của ballad",
+    "songForm": "Intro - Verse 1 - Pre-Chorus - Chorus - Verse 2 - Pre-Chorus - Chorus - Bridge - Chorus - Outro",
+    "story": "Người con đi làm ăn xa, trong một chiều mưa nhớ lại khu vườn nhà cũ và hình ảnh người cha già lặng lẽ chăm sóc cây cối, thắp lên khát khao được về nhà",
+    "vocalDirection": "Giọng hát tự sự, tình cảm ở phần đầu, ấm áp ở pre-chorus và bùng nổ, truyền cảm ở điệp khúc"
+  },
+  "metaPlan": "Tiến hành chạy Bước 2 để tạo compose-prompt và arrange-prompt, sau đó thực hiện Bước 3 để sinh Lead Sheet MusicXML và notes với cấu trúc piano reduction và kiểm tra quality gate, tiếp theo hoàn thiện Bước 4 với MusicXML phối khí đầy đủ.",
+  "planSummary": "Đã chọn lọc các tài liệu chuẩn xác từ catalog cho Bước 3 (sáng tác melody, lời, luật thanh điệu tiếng Việt, piano reduction và quality gate) và Bước 4 (phối khí, energy section, orchestration, vocal backing và safe patterns MusicXML).",
+  "composePrompt": "Bạn là nhạc sĩ sáng tác chuyên nghiệp. Hãy dựa vào tài liệu DOC_REFS để viết giai điệu, lời ca (đảm bảo thanh điệu tiếng Việt và tiêu chuẩn lyric-melody-fit) và cấu trúc lead sheet hoàn chỉnh cho bài hát theo yêu cầu của người dùng. Xuất đầu ra bao gồm file MusicXML lead sheet hợp lệ cùng phần notes chi tiết (gồm lyrics_by_section, music_quality_gate với REQUIRE_PIANO_TEXTURE PASS, và piano_texture thực tế không pad whole-note).",
+  "arrangePrompt": "Bạn là nhà phối khí chuyên nghiệp. Hãy dựa vào tài liệu DOC_REFS và lead sheet từ Bước 3 để phát triển bản phối khí đa bè, thiết lập khóa progression/melody, xây dựng tương phản energy và dynamics theo section, viết texture piano reduction sống động, và đảm bảo importer_self_check PASS cùng piano_texture_check PASS trước khi xuất MusicXML hoàn chỉnh.",
+  "composeDocRefs": [
+    "KNOW.LYRICS.CRAFT",
+    "KNOW.LYRICS.LYRIC-MELODY-FIT",
+    "KNOW.MELODY.INVENTION",
+    "KNOW.MELODY.QUALITY-GATE",
+    "KNOW.HARMONY.PIANO-REDUCTION",
+    "KNOW.VI.TONE-MELODY",
+    "KNOW.MUSICXML.RULES",
+    "STYLE.VN.VPOP-BALLAD"
+  ],
+  "arrangeDocRefs": [
+    "KNOW.HARMONY.PIANO-REDUCTION",
+    "KNOW.ARR.ORCHESTRATION",
+    "KNOW.ARR.SECTION-ENERGY",
+    "KNOW.ARR.DYNAMICS-STRUCTURE",
+    "KNOW.ARR.INTRO-OUTRO-TRANSITION",
+    "KNOW.VOCAL.BACKING-HARMONIES",
+    "KNOW.MUSICXML.RULES",
+    "KNOW.MUSICXML.SAFE-PATTERNS"
+  ]
+}
