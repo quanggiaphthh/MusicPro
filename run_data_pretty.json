@@ -1,0 +1,187 @@
+{
+  "id": "compose-run-25aa97b5-37cd-4827-bab0-ad1771b9d1e6",
+  "input": {
+    "idea": "Viết một ca khúc V-Pop ballad tiếng Việt về mùa chia tay cuối cấp, sân trường, hàng ghế đá và hoa phượng đỏ; cảm xúc trong trẻo, tiếc nuối nhưng không bi lụy.",
+    "styleId": "STYLE.VN.VPOP-BALLAD"
+  },
+  "maxQualityRetries": 1,
+  "status": "failed",
+  "createdAt": 1789615219331,
+  "updatedAt": 1789615262864,
+  "startedAt": 1789615219332,
+  "completedAt": 1789615262864,
+  "events": [
+    {
+      "kind": "progress",
+      "step": 1,
+      "progress": 3,
+      "label": "Bước 1 · Hiểu ý tưởng",
+      "detail": "Đang phân tích chủ đề, cảm xúc, câu chuyện và định hướng bài hát.",
+      "at": 1789615219333
+    },
+    {
+      "kind": "progress",
+      "step": 1,
+      "progress": 5,
+      "label": "Bước 1 · Hiểu ý tưởng",
+      "detail": "Đang phân tích yêu cầu và lập phương án · server vẫn đang xử lý",
+      "indeterminate": true,
+      "at": 1789615219333
+    },
+    {
+      "kind": "step-summary",
+      "step": 1,
+      "progress": 14,
+      "label": "Bước 1 hoàn tất",
+      "summary": {
+        "title": "Đã hiểu ý tưởng",
+        "items": [
+          {
+            "label": "Chủ đề",
+            "value": "Mùa chia tay cuối cấp, sân trường, hàng ghế đá và hoa phượng đỏ, hoài niệm trong trẻo"
+          },
+          {
+            "label": "Cảm xúc",
+            "value": "Trong trẻo, tiếc nuối nhưng nhẹ nhàng, không bi lụy"
+          },
+          {
+            "label": "Ngôn ngữ",
+            "value": "Tiếng Việt"
+          },
+          {
+            "label": "Thể loại",
+            "value": "V-Pop Ballad"
+          },
+          {
+            "label": "Câu chuyện",
+            "value": "Những kule tuổi học trò cất giữ dưới hộc bàn, lời hứa hẹn ngày sau và nụ cười rưng rưng dưới nắng hè"
+          },
+          {
+            "label": "Hình thức",
+            "value": "Intro - Verse 1 - Pre-Chorus - Chorus - Verse 2 - Pre-Chorus - Chorus - Bridge - Chorus - Outro"
+          }
+        ]
+      },
+      "at": 1789615225180
+    },
+    {
+      "kind": "step-summary",
+      "step": 2,
+      "progress": 23,
+      "label": "Bước 2 hoàn tất",
+      "summary": {
+        "title": "Phương án sáng tác",
+        "items": [
+          {
+            "label": "Tóm tắt",
+            "value": "Đã tạo prompt chuyên biệt và lựa chọn các tài liệu tham khảo chính xác từ catalog cho cả hai bước Sáng tác (Compose) và Phối khí (Arrange) theo định hướng V-Pop ballad."
+          },
+          {
+            "label": "Tài liệu sáng tác",
+            "value": "8 tài liệu"
+          },
+          {
+            "label": "Tài liệu phối khí",
+            "value": "8 tài liệu"
+          },
+          {
+            "label": "Phong cách",
+            "value": "V-Pop Ballad"
+          }
+        ]
+      },
+      "at": 1789615225181
+    },
+    {
+      "kind": "progress",
+      "step": 3,
+      "progress": 28,
+      "label": "Bước 3 · Bản nhạc",
+      "detail": "Đang sáng tác lời, giai điệu, hòa âm và piano reduction.",
+      "at": 1789615225181
+    },
+    {
+      "kind": "progress",
+      "step": 3,
+      "progress": 32,
+      "label": "Bước 3 · Bản nhạc",
+      "detail": "Server đang dựng Lead Sheet hoàn chỉnh · server vẫn đang xử lý",
+      "indeterminate": true,
+      "at": 1789615225181
+    },
+    {
+      "kind": "progress",
+      "step": 3,
+      "progress": 32,
+      "label": "Bước 3 · Bản nhạc",
+      "detail": "Server đang dựng Lead Sheet hoàn chỉnh · server vẫn đang xử lý (10s)",
+      "indeterminate": true,
+      "at": 1789615235181
+    },
+    {
+      "kind": "progress",
+      "step": 3,
+      "progress": 32,
+      "label": "Bước 3 · Bản nhạc",
+      "detail": "Server đang dựng Lead Sheet hoàn chỉnh · server vẫn đang xử lý (20s)",
+      "indeterminate": true,
+      "at": 1789615245181
+    },
+    {
+      "kind": "progress",
+      "step": 3,
+      "progress": 32,
+      "label": "Bước 3 · Bản nhạc",
+      "detail": "Server đang dựng Lead Sheet hoàn chỉnh · server vẫn đang xử lý (30s)",
+      "indeterminate": true,
+      "at": 1789615255182
+    }
+  ],
+  "checkpoints": {
+    "context": {
+      "metaPlan": "Thực hiện sáng tác giai điệu và lời ca theo đúng form V-Pop ballad, đảm bảo tính kết nối giữa các phần, tuân thủ các quy chuẩn cấu trúc MusicXML và quality gate ở bước tiếp theo.",
+      "composePrompt": "Bạn là chuyên gia sáng tác nhạc V-Pop ballad. Nhiệm vụ của bạn ở Bước 3 là viết lead sheet hoàn chỉnh (gồm giai điệu vocal, lời ca tiếng Việt chuẩn thanh điệu, hợp âm, và giảm tải piano reduction nghe được, tuyệt đối không dùng pad whole-note đơn điệu). Bạn phải tuân thủ nghiêm ngặt các quy tắc về contour, motif, lyric-melody fit và vượt qua Composition Quality Gate (có REQUIRE_PIANO_TEXTURE). Đọc kỹ các tài liệu trong DOC_REFS trước khi xuất file 03-song.musicxml và composition-notes.",
+      "arrangePrompt": "Bạn là nhà phối khí chuyên nghiệp. Nhiệm vụ của bạn ở Bước 4 là nhận lead sheet từ Bước 3, giữ nguyên khóa, giai điệu chính và progression gốc, sau đó triển khai thành bản phối đầy đủ nhiều part (vocal, piano texture chi tiết, strings, bass, drums). Đảm bảo sự tương phản năng lượng giữa các section theo framework energy, kiểm tra voice leading và vượt qua piano_texture_check cùng importer_self_check trước khi xuất file 04-arranged.musicxml.",
+      "composeDocRefs": [
+        "KNOW.LYRICS.CRAFT",
+        "KNOW.LYRICS.LYRIC-MELODY-FIT",
+        "KNOW.MELODY.CONTOUR",
+        "KNOW.MELODY.INVENTION",
+        "KNOW.MELODY.QUALITY-GATE",
+        "KNOW.HARMONY.PIANO-REDUCTION",
+        "KNOW.VI.TONE-MELODY",
+        "STYLE.VN.VPOP-BALLAD"
+      ],
+      "arrangeDocRefs": [
+        "KNOW.HARMONY.PIANO-REDUCTION",
+        "KNOW.ARR.ORCHESTRATION",
+        "KNOW.ARR.SECTION-ENERGY",
+        "KNOW.ARR.DYNAMICS-STRUCTURE",
+        "KNOW.ARR.DRUM-BASS-PATTERNS",
+        "KNOW.MUSICXML.SAFE-PATTERNS",
+        "KNOW.MUSICXML.IMPORTER-PROFILE",
+        "STYLE.VN.VPOP-BALLAD"
+      ],
+      "planSummary": "Đã tạo prompt chuyên biệt và lựa chọn các tài liệu tham khảo chính xác từ catalog cho cả hai bước Sáng tác (Compose) và Phối khí (Arrange) theo định hướng V-Pop ballad.",
+      "songRequest": {
+        "concept": "Mùa chia tay cuối cấp, sân trường, hàng ghế đá và hoa phượng đỏ, hoài niệm trong trẻo",
+        "emotion": "Trong trẻo, tiếc nuối nhưng nhẹ nhàng, không bi lụy",
+        "genre": "V-Pop Ballad",
+        "arrangementDirection": "Acoustic-electronic blend: piano mộc kết hợp guitar ở verse, dày dần với strings và synth pad nhẹ nhàng ở chorus, cao trào tinh tế",
+        "constraints": "Giữ đúng đặc trưng phong cách V-Pop Ballad, không sao chép tác phẩm có bản quyền, chú ý thanh điệu tiếng Việt",
+        "harmonyDirection": "Vòng hòa âm quen thuộc (I-V-vi-IV), giai điệu dễ nhớ, modulation nhẹ ở quãng 4 hoặc 5 nếu cần tạo cao trào",
+        "language": "Tiếng Việt",
+        "lyricDirection": "Hình ảnh hoa phượng, sân trường, góc ban công, tiếng ve kêu; sử dụng từ láy và vần nội tại tự nhiên",
+        "melodyDirection": "Bước liền ở verse, mở rộng quãng và tạo hook ngắn lặp ở chorus",
+        "rhythmDirection": "68-72 BPM, nhịp 4/4 đều đặn, feel ballad hiện đại",
+        "songForm": "Intro - Verse 1 - Pre-Chorus - Chorus - Verse 2 - Pre-Chorus - Chorus - Bridge - Chorus - Outro",
+        "story": "Những kule tuổi học trò cất giữ dưới hộc bàn, lời hứa hẹn ngày sau và nụ cười rưng rưng dưới nắng hè",
+        "vocalDirection": "Giọng nữ/nam trẻ trung, tự sự ở verse, giàu cảm xúc và sáng ở chorus"
+      }
+    }
+  },
+  "error": {
+    "code": "QUALITY_GATE_FAILED_AFTER_PATCH",
+    "message": "QUALITY_GATE_FAILED_AFTER_PATCH"
+  }
+}

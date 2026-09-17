@@ -95,6 +95,19 @@ function assertHookLock(core:SongCoreV1,winner:HookCandidate):void {
     if(actual!==expected) throw Object.assign(new Error('HOOK_LOCK_CONTENT_MISMATCH'),{code:'HOOK_LOCK_MISMATCH',sectionId:section.id});
   }
 }
+function materializeLockedHook(core:SongCoreV1,winner:HookCandidate):SongCoreV1 {
+  const lockedChoruses=hookLockedChoruses(core);
+  if(!lockedChoruses.length) throw Object.assign(new Error('HOOK_LOCK_CHORUS_MISSING'),{code:'HOOK_LOCK_MISMATCH'});
+  const replacements=new Map<number,SongCoreV1['measures'][number]>();
+  for(const section of lockedChoruses){
+    const existing=core.measures.filter(m=>m.number>=section.startMeasure&&m.number<=section.endMeasure);
+    if(existing.length!==winner.measures.length) throw Object.assign(new Error('HOOK_LOCK_MEASURE_COUNT_MISMATCH'),{code:'HOOK_LOCK_MISMATCH',sectionId:section.id});
+    winner.measures.forEach((measure,index)=>{
+      replacements.set(section.startMeasure+index,{...measure,number:section.startMeasure+index,sectionId:section.id});
+    });
+  }
+  return {...core,measures:core.measures.map(measure=>replacements.get(measure.number)??measure)};
+}
 function assertExpectedMeasureBudget(core:SongCoreV1,songRequest:any,target:number):void {
   if(isShortRequest(songRequest)) return;
   if(core.measures.length!==target){
@@ -176,6 +189,7 @@ export async function generateLeadSheetR3(input:R3LeadSheetInput,deps:R3LeadShee
   let core=await call<SongCoreV1>('song-weave',[{parts:[{text:weavePrompt}]}],{
     systemInstruction:packet,temperature:0.45,thinkingConfig:{thinkingLevel:'MINIMAL'},maxOutputTokens:65_536,responseMimeType:'application/json',responseSchema:buildSongCoreResponseSchema(),
   });
+  core=materializeLockedHook(core,winner);
 
   const structuralOptions=isShortRequest(input.songRequest)?{}:{minimumDurationSeconds:150};
   let structural=validateSongCore(core,structuralOptions);
@@ -198,8 +212,10 @@ export async function generateLeadSheetR3(input:R3LeadSheetInput,deps:R3LeadShee
   if(needsPatch){
     const targets=structuralTargets.length?structuralTargets:qualityPatchTargets(core,quality,tone);
     if(!targets.length){
-      const code=!structural.ok?'SONGCORE_INVALID':tone.status==='FAIL'?'TONE_GUARD_FAIL':'QUALITY_GATE_FAILED';
-      throw makeError(code,code,{xml,quality,tone,errors:structural.errors});
+      if(!structural.ok) throw makeError('SONGCORE_INVALID','SONGCORE_INVALID',{xml,quality,tone,errors:structural.errors});
+      if(tone.status==='FAIL') throw makeError('TONE_GUARD_FAIL','TONE_GUARD_FAIL',{xml,quality,tone,errors:structural.errors});
+      // Quality-only failures without a safe localized patch target remain reviewable artifacts.
+      return {xml,diagnostics:{providerCalls,patchUsed:false,selectedHookId:winner.id,hookScore:selection.winner.score.total,toneGuardScore:tone.score,qualityScore:Number(quality.score||0),targetMeasures}};
     }
     const locked=chorusLockedMeasureNumbers(core);
     if(targets.some(n=>locked.has(n))) throw makeError('HOOK_PATCH_FORBIDDEN');
@@ -225,7 +241,9 @@ export async function generateLeadSheetR3(input:R3LeadSheetInput,deps:R3LeadShee
     validation=deps.validateLeadSheet(xml,input.songRequest);
     if(!validation.isValid) throw makeError('MUSICXML_COMPILER_INVALID_AFTER_PATCH',`MUSICXML_COMPILER_INVALID_AFTER_PATCH:${validation.errors.join(',')}`,{xml});
     quality=deps.evaluateCompositionQuality({xml,songDna:deps.extractSongDNA(xml),songRequest:input.songRequest});
-    if(tone.status==='FAIL'||quality.status!=='PASS') throw makeError('QUALITY_GATE_FAILED_AFTER_PATCH','QUALITY_GATE_FAILED_AFTER_PATCH',{xml,quality,tone});
+    if(tone.status==='FAIL') throw makeError('QUALITY_GATE_FAILED_AFTER_PATCH','QUALITY_GATE_FAILED_AFTER_PATCH',{xml,quality,tone});
+    // Preserve the final valid MusicXML candidate even when Composition Quality still needs review.
+    // The outer production runner already audits this XML, persists it as a Step-3 artifact, and halts before Step 4 when quality is FAIL.
     return {xml,diagnostics:{providerCalls,patchUsed:true,selectedHookId:winner.id,hookScore:selection.winner.score.total,toneGuardScore:tone.score,qualityScore:Number(quality.score||0),targetMeasures}};
   }
 

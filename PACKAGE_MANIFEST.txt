@@ -6,7 +6,12 @@ Base GitHub SHA: 6608e1e2fa620fd71f3356e063bac862ede6fdc5
 Status: RUNTIME INTEGRATION CANDIDATE — NOT ACCEPTED RELEASE
 No GitHub commit/push performed.
 Post-audit correction: targeted patch scope + non-final Chorus hook lock.
-PAYLOAD_FILE_COUNT=395
+Runtime correction: Google Gen AI responseSchema numeric enum values string-encoded for wire compatibility.
+Runtime correction R2: deterministic local materialization of the selected Hook Forge winner into every hook-locked non-final Chorus after Song Weave; no extra provider call.
+Runtime correction R3-DIAGNOSTICS: preserve privacy-safe quality/tone failure diagnostics across server-owned background runs; no music logic change.
+Runtime correction R4-PRODUCT: preserve valid Step-3 MusicXML candidates when Composition Quality remains FAIL; keep hard structural/ToneGuard blockers and halt before Step 4.
+Supersedes: Music-Pro-r3-runtime-candidate-AUDITED-R3-DIAGNOSTICS-2026-09-17.zip
+PAYLOAD_FILE_COUNT=396
 
 .env.example
 .gitignore
@@ -298,6 +303,7 @@ tests/compose/background-navigation-copy.test.ts
 tests/compose/background-partial-persistence-policy.test.ts
 tests/compose/background-progress-ui.test.ts
 tests/compose/background-project-binding-policy.test.ts
+tests/compose/background-quality-diagnostics.test.ts
 tests/compose/background-refresh-e2e.test.ts
 tests/compose/background-run-api-policy.test.ts
 tests/compose/background-run-api.test.ts

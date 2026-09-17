@@ -74,9 +74,22 @@ const input={composePrompt:'Viết bài test',composeDocRefs:[],metaPlan:'plan',
 
 {
   let calls=0;
+  const generate=async()=>response(++calls===1?hookResponse:core);
+  const result=await generateLeadSheetR3(input,baseDeps(generate,()=>({status:'FAIL',score:78,checks:[{id:'lyrics',status:'weak',label:'lyrics',detail:'needs review',required:true}]})) as any);
+  assert.equal(calls,2,'a valid but non-patchable quality candidate must not trigger an extra provider call');
+  assert.equal(result.diagnostics.patchUsed,false,'non-patchable quality review must preserve the current candidate without a fake patch');
+  assert.equal(result.diagnostics.qualityScore,78);
+  assert.match(result.xml,/<score-partwise version="4\.0">/,'non-patchable quality review must still return valid MusicXML');
+}
+
+{
+  let calls=0;
   const generate=async()=>{calls++; if(calls>3) throw new Error('FOURTH_CALL_FORBIDDEN'); return calls===1?response(hookResponse):calls===2?response(core):response(patch);};
-  await assert.rejects(()=>generateLeadSheetR3(input,baseDeps(generate,()=>({status:'FAIL',score:60,checks:[{id:'section-contrast',status:'fail',label:'contrast',detail:'weak',required:true}]})) as any),/QUALITY_GATE_FAILED_AFTER_PATCH/);
+  const result=await generateLeadSheetR3(input,baseDeps(generate,()=>({status:'FAIL',score:74,checks:[{id:'section-contrast',status:'weak',label:'contrast',detail:'still needs review',required:true}]})) as any);
   assert.equal(calls,3,'fourth provider call is impossible');
+  assert.equal(result.diagnostics.patchUsed,true,'final failed quality candidate must still report the single targeted patch');
+  assert.equal(result.diagnostics.qualityScore,74,'reviewable candidate must preserve the final quality score');
+  assert.match(result.xml,/<score-partwise version="4\.0">/,'reviewable final candidate must be returned instead of discarded');
 }
 
 
@@ -127,7 +140,7 @@ const input={composePrompt:'Viết bài test',composeDocRefs:[],metaPlan:'plan',
 }
 
 {
-  const chorus2=[5,6,7,8].map(n=>measure(n,'chorus-2',67));
+  const chorus2=[5,6,7,8].map(n=>{ const m=measure(n,'chorus-2',67); return {...m,vocal:m.vocal.map((v,i)=>i===0?{...v,lyric:'DRIFT'}:v)}; });
   const finalChorus=[9,10,11,12].map(n=>measure(n,'chorus-final',67));
   const repeatedCore:SongCoreV1={
     version:'1',title:'Repeated Chorus',language:'vi',frame,selectedHookId:'hook-a',
@@ -149,12 +162,11 @@ const input={composePrompt:'Viết bài test',composeDocRefs:[],metaPlan:'plan',
   };
   let calls=0;
   const generate=async()=>response(++calls===1?hookResponse:repeatedCore);
-  await assert.rejects(
-    ()=>generateLeadSheetR3(input,baseDeps(generate,()=>({status:'PASS',score:92,checks:[]})) as any),
-    (error:any)=>error?.code==='HOOK_LOCK_MISMATCH',
-    'non-final repeated Choruses must preserve the selected hook identity',
-  );
-  assert.equal(calls,2,'hook identity rejection must not trigger full-song regeneration');
+  const result=await generateLeadSheetR3(input,baseDeps(generate,()=>({status:'PASS',score:92,checks:[]})) as any);
+  assert.equal(calls,2,'non-final Chorus drift is repaired locally without a third provider call');
+  assert.equal(result.diagnostics.providerCalls,2);
+  assert.equal(result.diagnostics.patchUsed,false);
+  assert.doesNotMatch(result.xml,/DRIFT/,'drifted non-final Chorus lyric must not survive deterministic hook anchoring');
 }
 
 

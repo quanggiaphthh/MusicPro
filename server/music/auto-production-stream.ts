@@ -18,6 +18,16 @@ function jsonResponse(data:unknown,status=200):Response{
   return new Response(JSON.stringify(data),{status,headers:{'Content-Type':'application/json'}});
 }
 
+function failureToneSummary(tone:any):{score:number;status:string;evaluatedPairs:number;contraryPairCount:number}|undefined{
+  if(!tone||typeof tone!=='object')return undefined;
+  return {
+    score:Number(tone.score||0),
+    status:String(tone.status||''),
+    evaluatedPairs:Number(tone.evaluatedPairs||0),
+    contraryPairCount:Array.isArray(tone.contraryPairs)?tone.contraryPairs.length:0,
+  };
+}
+
 /** Run the same quality-enforced orchestration server-side without HTTP hops between steps. */
 export async function runServerAutoProduction(input:AutoComposeInput,deps:ServerAutoProductionDeps,options:ServerAutoProductionOptions={}):Promise<AutoComposeResult>{
   const fakeFetch:any=async(url:string,init?:RequestInit)=>{
@@ -29,7 +39,14 @@ export async function runServerAutoProduction(input:AutoComposeInput,deps:Server
       if(url==='/api/compose/arrange')return jsonResponse({xml:await deps.generateArrangement(body.leadSheetXml,body.arrangePrompt,body.arrangeDocRefs||[],body.songRequest,body.styleId)});
       if(url==='/api/music/blueprint')return jsonResponse(await deps.analyze(body.musicXml,body.style,body.idea));
       return jsonResponse({error:{code:'AUTO_STREAM_ROUTE_UNKNOWN',message:`Unsupported internal route ${url}`}},404);
-    }catch(error:any){return jsonResponse({error:{code:error?.code||'AUTO_STREAM_OPERATION_FAILED',message:error?.message||'Auto production operation failed.'}},500);}
+    }catch(error:any){
+      return jsonResponse({error:{
+        code:error?.code||'AUTO_STREAM_OPERATION_FAILED',
+        message:error?.message||'Auto production operation failed.',
+        ...(error?.quality?{quality:error.quality}:{}),
+        ...(error?.tone?{tone:failureToneSummary(error.tone)}:{}),
+      }},500);
+    }
   };
   return runAutoComposition(input,{fetchImpl:fakeFetch,onEvent:options.onEvent,maxQualityRetries:options.maxQualityRetries,signal:options.signal});
 }

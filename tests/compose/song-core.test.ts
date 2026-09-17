@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { applySongCorePatch, hookFingerprint, measureTicksForFrame, songCoreFingerprint, validateSongCore, type HookCandidate, type SongCoreV1 } from '../../server/music/song-core.ts';
+import { applySongCorePatch, buildHookForgeResponseSchema, buildSongCorePatchResponseSchema, buildSongCoreResponseSchema, hookFingerprint, measureTicksForFrame, songCoreFingerprint, validateSongCore, type HookCandidate, type SongCoreV1 } from '../../server/music/song-core.ts';
 
 function core4(): SongCoreV1 {
   return {
@@ -16,6 +16,32 @@ function hasCode(result:ReturnType<typeof validateSongCore>,code:string){ assert
 assert.equal(measureTicksForFrame(core4().frame),96);
 const six=core4(); six.frame.meter={beats:6,beatType:8}; assert.equal(measureTicksForFrame(six.frame),72);
 assert.equal(validateSongCore(core4()).ok,true);
+
+
+// Google Gen AI Schema.enum is a repeated string field even for INTEGER schemas.
+// Numeric constraints must therefore be encoded as strings on the wire while
+// retaining type:'INTEGER' so generated JSON values remain integers.
+function assertSchemaEnumsAreStrings(schema: unknown, path='root'): void {
+  if (!schema || typeof schema !== 'object') return;
+  const node=schema as Record<string, unknown>;
+  if (Array.isArray(node.enum)) {
+    assert.ok(node.enum.every(value=>typeof value==='string'), `${path}.enum must contain only strings: ${JSON.stringify(node.enum)}`);
+  }
+  if (node.properties && typeof node.properties==='object') {
+    for (const [key,value] of Object.entries(node.properties as Record<string, unknown>)) assertSchemaEnumsAreStrings(value,`${path}.properties.${key}`);
+  }
+  if (node.items) assertSchemaEnumsAreStrings(node.items,`${path}.items`);
+}
+for (const [name,schema] of [
+  ['hook',buildHookForgeResponseSchema()],
+  ['song',buildSongCoreResponseSchema()],
+  ['patch',buildSongCorePatchResponseSchema()],
+] as const) assertSchemaEnumsAreStrings(schema,name);
+
+const hookSchema:any=buildHookForgeResponseSchema();
+assert.equal(hookSchema.properties.frame.properties.divisions.type,'INTEGER');
+assert.deepEqual(hookSchema.properties.frame.properties.divisions.enum,['24']);
+assert.deepEqual(hookSchema.properties.candidates.items.properties.measures.items.properties.vocal.items.properties.pitch.properties.alter.enum,['-1','0','1']);
 
 const gap=core4(); gap.measures[1].number=3; hasCode(validateSongCore(gap),'MEASURE_GRID_GAP');
 const overlap=core4(); overlap.measures[0].vocal[1].tick=12; hasCode(validateSongCore(overlap),'VOCAL_OVERLAP');

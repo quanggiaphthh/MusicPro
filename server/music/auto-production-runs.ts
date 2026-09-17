@@ -34,7 +34,12 @@ export interface BackgroundRunSnapshot {
   events: AutoComposeEvent[];
   checkpoints: BackgroundRunCheckpoints;
   result?: AutoComposeResult;
-  error?: { code?: string; message: string };
+  error?: {
+    code?: string;
+    message: string;
+    quality?: AutoComposeEvent['quality'];
+    tone?: { score:number; status:string; evaluatedPairs:number; contraryPairCount:number };
+  };
 }
 
 interface BackgroundRunRecord extends BackgroundRunSnapshot {
@@ -192,7 +197,13 @@ export function createBackgroundRunRegistry(deps: ServerAutoProductionDeps, opti
           return;
         }
         record.status = 'failed';
-        record.error = { code: error?.code, message: error?.message || 'Auto production failed.' };
+        const payloadError=error?.payload?.error;
+        record.error = {
+          code: error?.code,
+          message: error?.message || 'Auto production failed.',
+          ...((error?.quality||payloadError?.quality)?{quality:error?.quality||payloadError?.quality}:{}),
+          ...((error?.tone||payloadError?.tone)?{tone:error?.tone||payloadError?.tone}:{}),
+        };
         record.completedAt = now();
         record.updatedAt = record.completedAt;
         scheduleCleanup(record);
