@@ -82,9 +82,10 @@ export async function runAutoComposition(input: AutoComposeInput, options: AutoC
     body: unknown,
   ) => {
     const started = Date.now();
+    await emit({ kind:'progress', step, progress, label, detail:`${detail} · server vẫn đang xử lý`, indeterminate:true });
     const timer = setInterval(() => {
       const seconds = Math.round((Date.now()-started)/1000);
-      void emit({ kind:'progress', step, progress, label, detail:`${detail} · vẫn đang xử lý (${seconds}s)` });
+      void emit({ kind:'progress', step, progress, label, detail:`${detail} · server vẫn đang xử lý (${seconds}s)`, indeterminate:true });
     }, 10000);
     try {
       return await request(fetchImpl, url, body, options.signal);
@@ -124,36 +125,30 @@ export async function runAutoComposition(input: AutoComposeInput, options: AutoC
   });
 
   const baseComposePrompt = prepared.composePrompt;
-  let composePrompt = baseComposePrompt;
+  const composePrompt = baseComposePrompt;
   let leadSheetXml = '';
   let leadAnalysis: any = null;
   let compositionQuality!: QualityReport;
-  for (let attempt=0; attempt<=maxQualityRetries; attempt++) {
-    await emit({ kind:'progress', step:3, progress:attempt?36:28, label:'Bước 3 · Bản nhạc', detail:attempt?'Đang sáng tác lại toàn bộ Lead Sheet theo quality feedback.':'Đang sáng tác lời, giai điệu, hòa âm và piano reduction.' });
-    const lead = await requestWithHeartbeat(3, attempt?38:32, 'Bước 3 · Bản nhạc', 'Model đang dựng Lead Sheet hoàn chỉnh', '/api/compose/lead-sheet', {
-      composePrompt, composeDocRefs: prepared.composeDocRefs || [], metaPlan: prepared.metaPlan || '', songRequest, styleId: input.styleId,
+  await emit({ kind:'progress', step:3, progress:28, label:'Bước 3 · Bản nhạc', detail:'Đang sáng tác lời, giai điệu, hòa âm và piano reduction.' });
+  const lead = await requestWithHeartbeat(3, 32, 'Bước 3 · Bản nhạc', 'Server đang dựng Lead Sheet hoàn chỉnh', '/api/compose/lead-sheet', {
+    composePrompt, composeDocRefs: prepared.composeDocRefs || [], metaPlan: prepared.metaPlan || '', songRequest, styleId: input.styleId,
+  });
+  leadSheetXml = String(lead.xml || '');
+  await emit({ kind:'progress', step:3, progress:46, label:'Bước 3 · Kiểm tra', detail:'MusicXML đã sinh xong; đang phân tích SongDNA và quality gate.' });
+  leadAnalysis = await requestWithHeartbeat(3, 49, 'Bước 3 · Quality audit', 'Đang trích SongDNA và chấm quality contract', '/api/music/blueprint', { musicXml: leadSheetXml, style: input.styleId, idea: input.idea });
+  compositionQuality = evaluateCompositionQuality({ xml:leadSheetXml, songDna:leadAnalysis.songDNA || {}, songRequest });
+  await emit({ kind:'quality', step:3, progress:53, label:`Composition Quality Gate · ${compositionQuality.status}`, quality:compositionQuality });
+  if (compositionQuality.status !== 'PASS') {
+    await emit({
+      kind:'artifact', step:3, progress:55, label:'Bước 3 cần rà soát', xml:leadSheetXml, songDna:leadAnalysis?.songDNA, blueprint:leadAnalysis?.blueprint, quality:compositionQuality,
+      summary: summary('Lead Sheet tốt nhất hiện có', [
+        ['Thời lượng', `${Math.round(Number(leadAnalysis?.songDNA?.musical?.approximateDuration || 0))} giây`],
+        ['Quality', `${compositionQuality.status} · ${compositionQuality.score}/100`],
+        ['Trạng thái', 'Đã bảo toàn candidate cuối; dừng trước phối khí để không production hóa một composition chưa đạt gate.'],
+      ], compositionQuality),
     });
-    leadSheetXml = String(lead.xml || '');
-    await emit({ kind:'progress', step:3, progress:46, label:'Bước 3 · Kiểm tra', detail:'MusicXML đã sinh xong; đang phân tích SongDNA và quality gate.' });
-    leadAnalysis = await requestWithHeartbeat(3, 49, 'Bước 3 · Quality audit', 'Đang trích SongDNA và chấm quality contract', '/api/music/blueprint', { musicXml: leadSheetXml, style: input.styleId, idea: input.idea });
-    compositionQuality = evaluateCompositionQuality({ xml:leadSheetXml, songDna:leadAnalysis.songDNA || {}, songRequest });
-    await emit({ kind:'quality', step:3, progress:53, label:`Composition Quality Gate · ${compositionQuality.status}`, quality:compositionQuality });
-    if (compositionQuality.status === 'PASS') break;
-    if (attempt >= maxQualityRetries) {
-      await emit({
-        kind:'artifact', step:3, progress:55, label:'Bước 3 cần rà soát', xml:leadSheetXml, songDna:leadAnalysis?.songDNA, blueprint:leadAnalysis?.blueprint, quality:compositionQuality,
-        summary: summary('Lead Sheet tốt nhất hiện có', [
-          ['Thời lượng', `${Math.round(Number(leadAnalysis?.songDNA?.musical?.approximateDuration || 0))} giây`],
-          ['Quality', `${compositionQuality.status} · ${compositionQuality.score}/100`],
-          ['Trạng thái', 'Đã bảo toàn candidate cuối; dừng trước phối khí để không production hóa một composition chưa đạt gate.'],
-        ], compositionQuality),
-      });
-      await emit({ kind:'halted', step:3, progress:56, label:'Dừng tại Bước 3', detail:compositionQuality.summary, quality:compositionQuality });
-      throw Object.assign(new Error(compositionQuality.summary), { code:'COMPOSITION_QUALITY_FAILED', quality:compositionQuality, xml:leadSheetXml, songDna:leadAnalysis?.songDNA, blueprint:leadAnalysis?.blueprint });
-    }
-    const feedback = buildQualityRetryFeedback(compositionQuality);
-    composePrompt = `${baseComposePrompt}\n\n${feedback}`;
-    await emit({ kind:'retry', step:3, progress:34, label:'Bước 3 · Quality retry', detail:'Lead Sheet chưa đạt production gate; hệ thống tự tạo lại một lần.' });
+    await emit({ kind:'halted', step:3, progress:56, label:'Dừng tại Bước 3', detail:compositionQuality.summary, quality:compositionQuality });
+    throw Object.assign(new Error(compositionQuality.summary), { code:'COMPOSITION_QUALITY_FAILED', quality:compositionQuality, xml:leadSheetXml, songDna:leadAnalysis?.songDNA, blueprint:leadAnalysis?.blueprint });
   }
   await emit({
     kind:'artifact', step:3, progress:56, label:'Bước 3 hoàn tất', xml:leadSheetXml, songDna:leadAnalysis?.songDNA, blueprint:leadAnalysis?.blueprint,

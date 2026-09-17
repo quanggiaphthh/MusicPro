@@ -1,90 +1,405 @@
-Music-Pro Auto Production Pipeline v1.4.1 — PRE-FLIGHT FINAL
-Base: 6608e1e2fa620fd71f3356e063bac862ede6fdc5
-Generated: 2026-09-16
+Music-Pro Hook-First SongCore Candidate r3
+Verification date: 2026-09-17
+Base artifact: music-pro (1)(1).zip
+Base SHA-256: e2ac43369ba9b3ddc1dab600374d8c219f94494b87d1cb286f6417e28f2fa530
+Base GitHub SHA: 6608e1e2fa620fd71f3356e063bac862ede6fdc5
+Status: RUNTIME INTEGRATION CANDIDATE — NOT ACCEPTED RELEASE
+No GitHub commit/push performed.
+Post-audit correction: targeted patch scope + non-final Chorus hook lock.
+PAYLOAD_FILE_COUNT=395
 
-Payload files (PACKAGE_MANIFEST.txt and SHA256SUMS.txt are metadata companions):
-- AUDIT_HARDENING_V1.4.1.md
-- README_AUTO_PRODUCTION_PIPELINE.md
-- UPLOAD_AUTO_PRODUCTION_PIPELINE_TO_AISTUDIO.md
-- VERIFICATION_AUTO_PRODUCTION_PIPELINE.txt
-- docs/m-guide/pipeline/overview.md
-- docs/m-guide/pipeline/step-03-compose.md
-- docs/m-guide/pipeline/step-04-arrange.md
-- docs/superpowers/plans/2026-09-16-auto-production-pipeline-plan.md
-- docs/superpowers/plans/2026-09-16-auto-production-streaming-hardening-plan.md
-- docs/superpowers/specs/2026-09-16-auto-production-pipeline-design.md
-- docs/superpowers/specs/2026-09-16-auto-production-streaming-hardening-design.md
-- scripts/apply-auto-production-v1.4.1.mjs
-- server/music/auto-production-stream.ts
-- server/music/gemini-music-brief.ts
-- server/music/production-blueprint.ts
-- server/music/production-role-map.ts
-- server/projectmusic/knowledge.ts
-- src/components/compose/AutoComposeProgress.tsx
-- src/components/workspace/ExportPanel.tsx
-- src/compose/arrangement-production-run.ts
-- src/compose/auto-compose.ts
-- src/compose/composition-production-run.ts
-- src/compose/eta-history.ts
-- src/compose/master-identity-lock.ts
-- src/compose/production-certification.ts
-- src/compose/production-quality.ts
-- src/compose/stream-auto-compose.ts
-- src/compose/types.ts
-- src/export/project-package.ts
-- src/music/score-playback-visuals.ts
-- src/projects/local-project-repository.ts
-- src/projects/project-service.ts
-- src/projects/types.ts
-- src/views/ComposeView.tsx
-- tests/compose/arrangement-entrypoints-policy.test.ts
-- tests/compose/arrangement-production-run.test.ts
-- tests/compose/auto-compose-failure-artifact.test.ts
-- tests/compose/auto-compose-retry.test.ts
-- tests/compose/auto-compose-ui-policy.test.ts
-- tests/compose/auto-compose.test.ts
-- tests/compose/auto-recovery-policy.test.ts
-- tests/compose/cancelled-state-policy.test.ts
-- tests/compose/certification-semantics.test.ts
-- tests/compose/certification-state.test.ts
-- tests/compose/composition-production-run.test.ts
-- tests/compose/es2022-ui-policy.test.ts
-- tests/compose/eta-history.test.ts
-- tests/compose/eta-storage-failure.test.ts
-- tests/compose/event-history-memory-policy.test.ts
-- tests/compose/harmony-measure-lock.test.ts
-- tests/compose/importer-measure-grid.test.ts
-- tests/compose/installer-foreign-stream-route.test.ts
-- tests/compose/installer-idempotence.test.ts
-- tests/compose/installer-sha6608-anchor.test.ts
-- tests/compose/installer-tampered-marker.test.ts
-- tests/compose/installer-upgrade-v12.test.ts
-- tests/compose/installer-upgrade-v13.test.ts
-- tests/compose/installer-upgrade-v14.test.ts
-- tests/compose/manual-arrangement-fallback-policy.test.ts
-- tests/compose/master-identity-lock.test.ts
-- tests/compose/master-identity-metadata.test.ts
-- tests/compose/optional-weak-readiness.test.ts
-- tests/compose/prechorus-classification.test.ts
-- tests/compose/production-brief-policy.test.ts
-- tests/compose/production-core-docs-policy.test.ts
-- tests/compose/production-quality-hardening.test.ts
-- tests/compose/production-quality-strict.test.ts
-- tests/compose/production-quality.test.ts
-- tests/compose/production-resilience-ui-policy.test.ts
-- tests/compose/production-role-map.test.ts
-- tests/compose/project-certification-policy.test.ts
-- tests/compose/readiness-threshold-alignment.test.ts
-- tests/compose/required-weak-gate.test.ts
-- tests/compose/server-stream-policy.test.ts
-- tests/compose/server-stream-runner.test.ts
-- tests/compose/short-demo-arrangement.test.ts
-- tests/compose/stream-auto-compose.test.ts
-- tests/compose/stream-fallback.test.ts
-- tests/compose/stream-initial-fallback.test.ts
-- tests/compose/stream-protocol-cancel.test.ts
-- tests/compose/sung-section-texture.test.ts
-- tests/music/project-package-policy.test.ts
-- tests/music/project-package.test.ts
-- tests/music/score-playback-backward-gap.test.ts
-- tests/music/stale-package-evidence-policy.test.ts
+.env.example
+.gitignore
+AUDIT_HARDENING_V1.4.1.md
+LOCAL_BACKGROUND_VERIFICATION.md
+LOCAL_BACKGROUND_VERSION.txt
+PACKAGE_MANIFEST.txt
+R3_BENCHMARK.md
+R3_VERIFICATION.md
+README.md
+README_AUTO_PRODUCTION_PIPELINE.md
+README_HOOK_FIRST_SONGCORE_R3.md
+README_KNOWLEDGE_TYPESCRIPT_HOTFIX.md
+README_KNOWLEDGE_UNIFICATION.md
+README_LEAD_SHEET_DIAGNOSTICS.md
+README_LEAD_SHEET_RESPONSE_DIAGNOSTICS.md
+README_LOCAL_BACKGROUND_AUTO_COMPOSE.md
+README_MUSICXML_OUTPUT_BUDGET_HOTFIX.md
+README_PROJECT_ARRANGEMENT_RESUME_HOTFIX.md
+README_SCORE_THEATER.md
+README_TSCONFIG_DIST_HOTFIX.md
+ROLLBACK_PRODUCT_V1.md
+SHA256SUMS.txt
+UPLOAD_AUTO_PRODUCTION_PIPELINE_TO_AISTUDIO.md
+UPLOAD_HOOK_FIRST_SONGCORE_R3_TO_AISTUDIO.md
+UPLOAD_KNOWLEDGE_TYPESCRIPT_HOTFIX_TO_AISTUDIO.md
+UPLOAD_KNOWLEDGE_UNIFICATION_TO_AISTUDIO.md
+UPLOAD_LEAD_SHEET_DIAGNOSTICS_TO_AISTUDIO.md
+UPLOAD_LEAD_SHEET_RESPONSE_DIAGNOSTICS_TO_AISTUDIO.md
+UPLOAD_LIVE_AUDIO_FIX.md
+UPLOAD_LOCAL_BACKGROUND_AUTO_COMPOSE_TO_AISTUDIO.md
+UPLOAD_MUSICXML_OUTPUT_BUDGET_HOTFIX_TO_AISTUDIO.md
+UPLOAD_PRODUCT_V1_TO_AISTUDIO.md
+UPLOAD_PROJECT_ARRANGEMENT_RESUME_TO_AISTUDIO.md
+UPLOAD_SCORE_THEATER_TO_AISTUDIO.md
+UPLOAD_TO_AISTUDIO.md
+UPLOAD_TSCONFIG_DIST_HOTFIX_TO_AISTUDIO.md
+VERIFICATION.txt
+VERIFICATION_AUTO_PRODUCTION_PIPELINE.txt
+VERIFICATION_KNOWLEDGE_TYPESCRIPT_HOTFIX.txt
+VERIFICATION_KNOWLEDGE_UNIFICATION.txt
+VERIFICATION_LIVE_AUDIO_FIX.txt
+VERIFICATION_PRODUCT_V1.txt
+VERIFICATION_PROJECT_ARRANGEMENT_RESUME.txt
+VERIFICATION_SOUNDFONT_AUDIO.txt
+VERIFICATION_TSCONFIG_DIST_HOTFIX.txt
+bun.lock
+docs/implementation/LIVE_AUDIO_MEDIA_FIX.md
+docs/implementation/PLAYABLE_PRODUCT_AUDIT.md
+docs/implementation/PLAYABLE_PRODUCT_PLAN.md
+docs/implementation/PRODUCT_V1_AUDIT.md
+docs/implementation/PRODUCT_V1_DESIGN.md
+docs/implementation/PRODUCT_V1_PLAN.md
+docs/implementation/PRODUCT_V1_VERIFICATION.md
+docs/implementation/SOUNDFONT_AUDIO_QUALITY.md
+docs/m-guide/README.md
+docs/m-guide/artifacts/arrange-prompt.template.md
+docs/m-guide/artifacts/arrangement-notes.template.md
+docs/m-guide/artifacts/compose-prompt.template.md
+docs/m-guide/artifacts/composition-notes.template.md
+docs/m-guide/artifacts/meta-prompt.template.md
+docs/m-guide/artifacts/run-review.template.md
+docs/m-guide/artifacts/upgrade-changelog.template.md
+docs/m-guide/artifacts/user-message-ai.md
+docs/m-guide/catalog.yml
+docs/m-guide/examples/README.md
+docs/m-guide/for-ai.md
+docs/m-guide/guides/chuc-nang-1-sang-tac.md
+docs/m-guide/knowledge/README.md
+docs/m-guide/knowledge/arrangement/drum-bass-patterns.md
+docs/m-guide/knowledge/arrangement/dynamics-and-structure.md
+docs/m-guide/knowledge/arrangement/genre-textures.md
+docs/m-guide/knowledge/arrangement/instrument-roles-and-register.md
+docs/m-guide/knowledge/arrangement/intro-outro-transition.md
+docs/m-guide/knowledge/arrangement/orchestration.md
+docs/m-guide/knowledge/arrangement/section-energy.md
+docs/m-guide/knowledge/harmony/basics.md
+docs/m-guide/knowledge/harmony/chord-substitution.md
+docs/m-guide/knowledge/harmony/functional-cadence-and-voicing.md
+docs/m-guide/knowledge/harmony/modal-pentatonic-vietnamese.md
+docs/m-guide/knowledge/harmony/modulation.md
+docs/m-guide/knowledge/harmony/piano-reduction.md
+docs/m-guide/knowledge/lyrics/craft.md
+docs/m-guide/knowledge/lyrics/hook-prechorus-bridge.md
+docs/m-guide/knowledge/lyrics/lyric-melody-fit.md
+docs/m-guide/knowledge/lyrics/prosody-and-rhyme.md
+docs/m-guide/knowledge/melody/anti-patterns.md
+docs/m-guide/knowledge/melody/composition-planning.md
+docs/m-guide/knowledge/melody/contour.md
+docs/m-guide/knowledge/melody/melody-invention.md
+docs/m-guide/knowledge/melody/motif-development.md
+docs/m-guide/knowledge/melody/musical-quality-gate.md
+docs/m-guide/knowledge/melody/phrase-structure.md
+docs/m-guide/knowledge/musicxml/anti-patterns.md
+docs/m-guide/knowledge/musicxml/canonical-source.md
+docs/m-guide/knowledge/musicxml/importer-profile.md
+docs/m-guide/knowledge/musicxml/lyrics-and-notations.md
+docs/m-guide/knowledge/musicxml/lyrics-encoding.md
+docs/m-guide/knowledge/musicxml/performance-markings.md
+docs/m-guide/knowledge/musicxml/rules.md
+docs/m-guide/knowledge/musicxml/safe-patterns.md
+docs/m-guide/knowledge/musicxml/structure-and-voices.md
+docs/m-guide/knowledge/musicxml/validation-checklist.md
+docs/m-guide/knowledge/rhythm-form/form-and-tempo.md
+docs/m-guide/knowledge/rhythm-form/groove-and-syncopation.md
+docs/m-guide/knowledge/rhythm-form/rhythmic-patterns.md
+docs/m-guide/knowledge/styles/_template.md
+docs/m-guide/knowledge/styles/edm-dance-pop-generic.md
+docs/m-guide/knowledge/styles/folk-acoustic-generic.md
+docs/m-guide/knowledge/styles/hiphop-melodic.md
+docs/m-guide/knowledge/styles/jazz-pop-light.md
+docs/m-guide/knowledge/styles/pop-ballad-generic.md
+docs/m-guide/knowledge/styles/rnb-soul-generic.md
+docs/m-guide/knowledge/styles/rock-generic.md
+docs/m-guide/knowledge/styles/vn-acoustic-indie.md
+docs/m-guide/knowledge/styles/vn-bolero-tru-tinh.md
+docs/m-guide/knowledge/styles/vn-dan-ca-contemporary.md
+docs/m-guide/knowledge/styles/vn-heroic-march.md
+docs/m-guide/knowledge/styles/vn-vpop-ballad.md
+docs/m-guide/knowledge/styles/vn-vpop-uptempo.md
+docs/m-guide/knowledge/vietnamese/rhyme-meter.md
+docs/m-guide/knowledge/vietnamese/syllable-priority.md
+docs/m-guide/knowledge/vietnamese/tone-melody.md
+docs/m-guide/knowledge/vocal/backing-harmonies.md
+docs/m-guide/knowledge/vocal/phrasing-breath-and-melisma.md
+docs/m-guide/knowledge/vocal/techniques.md
+docs/m-guide/knowledge/vocal/writing.md
+docs/m-guide/meta/archive-policy.md
+docs/m-guide/meta/link-scheme.md
+docs/m-guide/meta/page-template.md
+docs/m-guide/meta/purpose.md
+docs/m-guide/meta/song-request-schema.md
+docs/m-guide/meta/standards.md
+docs/m-guide/pipeline/merge-policy.md
+docs/m-guide/pipeline/overview.md
+docs/m-guide/pipeline/step-01-meta-prompt.md
+docs/m-guide/pipeline/step-02-specialized-prompts.md
+docs/m-guide/pipeline/step-03-compose.md
+docs/m-guide/pipeline/step-04-arrange.md
+docs/m-guide/prompt-craft/README.md
+docs/m-guide/prompt-craft/output-contract.md
+docs/m-guide/prompt-craft/principles.md
+docs/m-guide/prompts/curator.md
+docs/m-guide/prompts/improver.md
+docs/superpowers/plans/2026-09-16-auto-production-pipeline-plan.md
+docs/superpowers/plans/2026-09-16-auto-production-streaming-hardening-plan.md
+docs/superpowers/plans/2026-09-16-local-background-auto-compose-plan.md
+docs/superpowers/specs/2026-09-16-auto-production-pipeline-design.md
+docs/superpowers/specs/2026-09-16-auto-production-streaming-hardening-design.md
+docs/superpowers/specs/2026-09-16-local-background-auto-compose-design.md
+failed-lead-sheet.musicxml
+failed-verification.musicxml
+firebase-applet-config.json
+firebase-blueprint.json
+firestore.rules
+golden-01-vpop-arranged.musicxml
+golden-01-vpop-lead.musicxml
+golden-01-vpop-step1-2.json
+golden-arranged.xml
+golden-lead-sheet.xml
+index.html
+metadata.json
+package.json
+scripts/apply-auto-production-v1.4.1.mjs
+server.ts
+server/music/auto-production-runs.ts
+server/music/auto-production-stream.ts
+server/music/composer-knowledge-packet.ts
+server/music/composer.ts
+server/music/gemini-music-brief.ts
+server/music/generation-failure-diagnostics.ts
+server/music/generation-telemetry.ts
+server/music/hook-forge.ts
+server/music/knowledge-dedup.ts
+server/music/lead-sheet-r3.ts
+server/music/musicxml-validator.ts
+server/music/production-blueprint.ts
+server/music/production-role-map.ts
+server/music/provider-timeout.ts
+server/music/score-compiler.ts
+server/music/section-revision.ts
+server/music/song-core.ts
+server/music/song-dna.ts
+server/music/types.ts
+server/music/vietnamese-tone-guard.ts
+server/projectmusic/knowledge-admin-core.ts
+server/projectmusic/knowledge-admin.ts
+server/projectmusic/knowledge.ts
+src/App.tsx
+src/audio/media-playback-engine.ts
+src/audio/mix-render.ts
+src/audio/mix-state.ts
+src/audio/offline-render.ts
+src/audio/playback-engine.ts
+src/audio/render-policy.ts
+src/audio/soundfont-cache.ts
+src/audio/soundfont-render.ts
+src/audio/synth.ts
+src/components/MusicXMLViewer.tsx
+src/components/NowPlayingBar.tsx
+src/components/PWAInstallButton.tsx
+src/components/ResultWorkspace.tsx
+src/components/ScorePlayer.tsx
+src/components/ScoreQuickEdit.tsx
+src/components/Sidebar.tsx
+src/components/TopNav.tsx
+src/components/compose/AutoComposeProgress.tsx
+src/components/projects/ProjectList.tsx
+src/components/projects/ProjectToolbar.tsx
+src/components/workspace/EditPanel.tsx
+src/components/workspace/ExportPanel.tsx
+src/components/workspace/MixerPanel.tsx
+src/components/workspace/RevisionsPanel.tsx
+src/components/workspace/SectionRevisionPanel.tsx
+src/components/workspace/WorkspaceTabs.tsx
+src/compose/arrangement-production-run.ts
+src/compose/auto-compose.ts
+src/compose/background-auto-compose.ts
+src/compose/composition-production-run.ts
+src/compose/eta-history.ts
+src/compose/master-identity-lock.ts
+src/compose/production-certification.ts
+src/compose/production-quality.ts
+src/compose/stream-auto-compose.ts
+src/compose/types.ts
+src/contexts/AudioContext.tsx
+src/demo/multi-instrument-demo.ts
+src/export/project-package.ts
+src/export/zip-store.ts
+src/hooks/useAuth.tsx
+src/hooks/useNavigation.tsx
+src/hooks/useOnlineStatus.ts
+src/hooks/usePWAInstall.ts
+src/hooks/useToast.tsx
+src/index.css
+src/lib/firebase.ts
+src/lib/utils.ts
+src/main.tsx
+src/music/general-midi.ts
+src/music/instrument-program.ts
+src/music/measure-range.ts
+src/music/midi-export.ts
+src/music/musicxml-edit.ts
+src/music/musicxml-transform.ts
+src/music/score-id.ts
+src/music/score-playback-visuals.ts
+src/music/score-timeline.ts
+src/projects/arrangement-resume.ts
+src/projects/autosave.ts
+src/projects/composition-session.ts
+src/projects/legacy-run.ts
+src/projects/local-project-repository.ts
+src/projects/persistence-merge.ts
+src/projects/project-list-utils.ts
+src/projects/project-service.ts
+src/projects/revision-utils.ts
+src/projects/types.ts
+src/services/ai.ts
+src/services/db.ts
+src/services/knowledge.ts
+src/services/runs.ts
+src/services/settings.ts
+src/services/upgrades.ts
+src/types.ts
+src/utils/download.ts
+src/utils/lead-sheet-diagnostics.ts
+src/utils/product-errors.ts
+src/views/ComposeView.tsx
+src/views/DemoDataView.tsx
+src/views/FirebaseErrorView.tsx
+src/views/HomeView.tsx
+src/views/KnowledgeView.tsx
+src/views/RunsView.tsx
+src/views/SettingsView.tsx
+src/views/UpgradeView.tsx
+test-blueprint.ts
+tests/compose/arrangement-entrypoints-policy.test.ts
+tests/compose/arrangement-production-run.test.ts
+tests/compose/auto-compose-failure-artifact.test.ts
+tests/compose/auto-compose-retry.test.ts
+tests/compose/auto-compose-ui-policy.test.ts
+tests/compose/auto-compose.test.ts
+tests/compose/auto-recovery-policy.test.ts
+tests/compose/background-ambiguous-start-recovery.test.ts
+tests/compose/background-auto-compose.test.ts
+tests/compose/background-compose-recovery.test.ts
+tests/compose/background-compose-ui-policy.test.ts
+tests/compose/background-navigation-copy.test.ts
+tests/compose/background-partial-persistence-policy.test.ts
+tests/compose/background-progress-ui.test.ts
+tests/compose/background-project-binding-policy.test.ts
+tests/compose/background-refresh-e2e.test.ts
+tests/compose/background-run-api-policy.test.ts
+tests/compose/background-run-api.test.ts
+tests/compose/background-run-registry.test.ts
+tests/compose/background-start-idempotency.test.ts
+tests/compose/background-terminal-persistence.test.ts
+tests/compose/background-unmount-poll-guard.test.ts
+tests/compose/cancelled-state-policy.test.ts
+tests/compose/certification-semantics.test.ts
+tests/compose/certification-state.test.ts
+tests/compose/composition-production-run.test.ts
+tests/compose/es2022-ui-policy.test.ts
+tests/compose/eta-history.test.ts
+tests/compose/eta-storage-failure.test.ts
+tests/compose/event-history-memory-policy.test.ts
+tests/compose/generation-telemetry.test.ts
+tests/compose/harmony-measure-lock.test.ts
+tests/compose/hook-forge.test.ts
+tests/compose/importer-measure-grid.test.ts
+tests/compose/installer-foreign-stream-route.test.ts
+tests/compose/installer-idempotence.test.ts
+tests/compose/installer-sha6608-anchor.test.ts
+tests/compose/installer-tampered-marker.test.ts
+tests/compose/installer-upgrade-v12.test.ts
+tests/compose/installer-upgrade-v13.test.ts
+tests/compose/installer-upgrade-v14.test.ts
+tests/compose/knowledge-dedup.test.ts
+tests/compose/lead-sheet-r3.test.ts
+tests/compose/manual-arrangement-fallback-policy.test.ts
+tests/compose/master-identity-lock.test.ts
+tests/compose/master-identity-metadata.test.ts
+tests/compose/optional-weak-readiness.test.ts
+tests/compose/prechorus-classification.test.ts
+tests/compose/prepare-telemetry-policy.test.ts
+tests/compose/production-brief-policy.test.ts
+tests/compose/production-core-docs-policy.test.ts
+tests/compose/production-quality-hardening.test.ts
+tests/compose/production-quality-strict.test.ts
+tests/compose/production-quality.test.ts
+tests/compose/production-resilience-ui-policy.test.ts
+tests/compose/production-role-map.test.ts
+tests/compose/project-certification-policy.test.ts
+tests/compose/provider-cancel-policy.test.ts
+tests/compose/provider-timeout.test.ts
+tests/compose/r3-cancellation.test.ts
+tests/compose/r3-composer-routing-policy.test.ts
+tests/compose/r3-knowledge-packet.test.ts
+tests/compose/r3-no-full-regeneration.test.ts
+tests/compose/r3-provider-budget.test.ts
+tests/compose/readiness-threshold-alignment.test.ts
+tests/compose/required-weak-gate.test.ts
+tests/compose/score-compiler.test.ts
+tests/compose/server-stream-policy.test.ts
+tests/compose/server-stream-runner.test.ts
+tests/compose/short-demo-arrangement.test.ts
+tests/compose/song-core.test.ts
+tests/compose/stream-auto-compose.test.ts
+tests/compose/stream-fallback.test.ts
+tests/compose/stream-initial-fallback.test.ts
+tests/compose/stream-protocol-cancel.test.ts
+tests/compose/sung-section-texture.test.ts
+tests/compose/vietnamese-tone-guard.test.ts
+tests/music/audio-render-policy.test.ts
+tests/music/compose-routing.test.ts
+tests/music/general-midi.test.ts
+tests/music/golden-case.ts
+tests/music/instrument-program.test.ts
+tests/music/lead-sheet-diagnostics.test.ts
+tests/music/lyria-contract.test.ts
+tests/music/measure-range.test.ts
+tests/music/media-playback-engine.test.ts
+tests/music/midi-export.test.ts
+tests/music/mix-state.test.ts
+tests/music/multi-instrument-demo.test.ts
+tests/music/musicxml-edit.test.ts
+tests/music/musicxml-output-budget-hotfix.test.mjs
+tests/music/musicxml-transform.test.ts
+tests/music/musicxml-validation.test.ts
+tests/music/playback-helpers.test.ts
+tests/music/product-errors.test.ts
+tests/music/project-package-policy.test.ts
+tests/music/project-package.test.ts
+tests/music/projectmusic-knowledge.test.ts
+tests/music/r3-score-compatibility.test.ts
+tests/music/run-golden-vpop.ts
+tests/music/score-id.test.ts
+tests/music/score-playback-backward-gap.test.ts
+tests/music/score-playback-visuals.test.ts
+tests/music/score-theater-policy.test.ts
+tests/music/score-timeline.test.ts
+tests/music/stale-package-evidence-policy.test.ts
+tests/music/verify-robustness.ts
+tests/projects/arrangement-resume.test.ts
+tests/projects/autosave.test.ts
+tests/projects/composition-session.test.ts
+tests/projects/legacy-run.test.ts
+tests/projects/persistence-merge.test.ts
+tests/projects/project-list-utils.test.ts
+tests/projects/revision-utils.test.ts
+tests/server/generation-failure-diagnostics.test.ts
+tests/server/knowledge-admin-core.test.ts
+tests/server/section-revision.test.ts
+tools/apply-musicxml-output-budget-hotfix.mjs
+tsconfig.json
+vite.config.ts

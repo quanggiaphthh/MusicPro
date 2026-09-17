@@ -5,7 +5,17 @@ import { AutoComposeProgress } from '../components/compose/AutoComposeProgress';
 import { runArrangementProduction } from '../compose/arrangement-production-run';
 import { runCompositionProduction } from '../compose/composition-production-run';
 import { bindProductionSnapshotToRevision, isProductionCertificationCurrent } from '../compose/production-certification';
-import { runAutoCompositionStreamed } from '../compose/stream-auto-compose';
+import {
+  cancelBackgroundAutoComposition,
+  clearActiveBackgroundRunSession,
+  getBackgroundAutoComposition,
+  readActiveBackgroundRunSession,
+  startBackgroundAutoComposition,
+  writeActiveBackgroundRunId,
+  writeActiveBackgroundRunProjectId,
+  shouldClearBackgroundRunSession,
+  type BackgroundRunSnapshot,
+} from '../compose/background-auto-compose';
 import { readEtaEstimate, recordEtaSample } from '../compose/eta-history';
 import type { AutoComposeEvent, AutoCompositionContext, ProductionReadinessReport, QualityReport } from '../compose/types';
 import { createAutosaveController, shouldWarnBeforeUnload, type AutosaveController } from '../projects/autosave';
@@ -62,7 +72,11 @@ export const ComposeView: React.FC = () => {
   const [autoStartedAt, setAutoStartedAt] = useState<number>();
   const [autoReadiness, setAutoReadiness] = useState<ProductionReadinessReport>();
   const [autoEtaSeconds, setAutoEtaSeconds] = useState(()=>readEtaEstimate());
-  const autoAbortRef = useRef<AbortController | null>(null);
+  const autoPollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const autoPollActiveRef = useRef(true);
+  const activeBackgroundRunIdRef = useRef<string | undefined>();
+  const activeBackgroundProjectIdRef = useRef<string | undefined>();
+  const terminalHandledRunRef = useRef<string | undefined>();
   const autosaveRef = useRef<AutosaveController<MusicProjectBundle> | null>(null);
 
   if (!autosaveRef.current) {
@@ -79,16 +93,15 @@ export const ComposeView: React.FC = () => {
     fetch('/api/music/capabilities').then(response => response.json()).then(setCapabilities).catch(() => setCapabilities(null));
   }, []);
   useEffect(() => () => { if (audioUrl) URL.revokeObjectURL(audioUrl); }, [audioUrl]);
-  useEffect(() => () => autoAbortRef.current?.abort(), []);
   useEffect(() => {
     const handleBeforeUnload = (event: BeforeUnloadEvent) => {
-      if (!shouldWarnBeforeUnload(saveState, autosaveRef.current?.isDirty() === true) && !autoRunning) return;
+      if (!shouldWarnBeforeUnload(saveState, autosaveRef.current?.isDirty() === true)) return;
       event.preventDefault();
       event.returnValue = '';
     };
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-  }, [saveState, autoRunning]);
+  }, [saveState]);
 
   const scheduleSave = (bundle: MusicProjectBundle) => {
     setProjectBundle(bundle);
@@ -130,122 +143,226 @@ export const ComposeView: React.FC = () => {
     }
   };
 
+  const clearAutoPollTimer = () => {
+    if (autoPollTimerRef.current !== null) clearTimeout(autoPollTimerRef.current);
+    autoPollTimerRef.current = null;
+  };
+
+  const applyBackgroundContext = (context?: AutoCompositionContext) => {
+    if (!context) return;
+    setComposePrompt(context.composePrompt); setArrangePrompt(context.arrangePrompt);
+    setComposeDocRefs(context.composeDocRefs); setArrangeDocRefs(context.arrangeDocRefs);
+    setMetaPlan(context.metaPlan); setPlanSummary(context.planSummary); setSongRequest(context.songRequest);
+  };
+
+  const persistBackgroundArtifacts = async (snapshot: BackgroundRunSnapshot): Promise<MusicProjectBundle | undefined> => {
+    const context = snapshot.result?.context || snapshot.checkpoints.context;
+    const leadArtifact = snapshot.checkpoints.leadArtifact;
+    const arrangementArtifact = snapshot.checkpoints.arrangementArtifact;
+    const session = readActiveBackgroundRunSession();
+    const boundProjectId = activeBackgroundProjectIdRef.current || session?.projectId;
+    let bundle: MusicProjectBundle | undefined;
+
+    if (boundProjectId) {
+      try { bundle = await projectService.getProject(boundProjectId) || undefined; }
+      catch { bundle = undefined; }
+    }
+
+    const leadXml = snapshot.result?.leadSheetXml || leadArtifact?.xml || '';
+    const compositionQuality = snapshot.result?.compositionQuality || leadArtifact?.quality;
+    if (!bundle && leadXml) {
+      const label = compositionQuality?.status === 'PASS' ? 'Lead Sheet' : 'Lead Sheet cần rà soát';
+      bundle = await projectService.createFromComposition({
+        title: snapshot.input.idea.slice(0,100) || 'Bản nhạc Music-Pro',
+        idea: snapshot.input.idea,
+        style: snapshot.input.styleId,
+        musicXml: leadXml,
+        reason: 'compose',
+        label,
+      });
+      activeBackgroundProjectIdRef.current = bundle.project.id;
+      writeActiveBackgroundRunProjectId(bundle.project.id);
+    }
+    if (bundle && context) {
+      bundle = withCompositionContext(bundle, normalizeCompositionContext(context));
+      await projectService.saveProject(bundle);
+    }
+
+    const finalXmlCheckpoint = snapshot.result?.finalXml || arrangementArtifact?.xml || '';
+    if (bundle && finalXmlCheckpoint && activeXml(bundle) !== finalXmlCheckpoint) {
+      const readiness = snapshot.result?.readiness || arrangementArtifact?.readiness;
+      bundle = await projectService.appendRevision(bundle, {
+        musicXml: finalXmlCheckpoint,
+        reason: 'arrange',
+        label: readiness?.status === 'PASS' ? 'Bản phối' : 'Bản phối cần rà soát',
+      });
+    }
+
+    const arrangementQuality = snapshot.result?.arrangementQuality || arrangementArtifact?.quality;
+    const readiness = snapshot.result?.readiness || arrangementArtifact?.readiness;
+    if (bundle && compositionQuality && arrangementQuality && readiness) {
+      const snapshotData = bindProductionSnapshotToRevision({
+        pipelineVersion:'auto-production-v1.4.1-local-bg-v1', qualityContractVersion:'production-quality-v1.4.1',
+        sourceHead:'6608e1e2fa620fd71f3356e063bac862ede6fdc5',
+        input:{idea:snapshot.input.idea,styleId:snapshot.input.styleId},
+        compositionQuality, arrangementQuality, readiness,
+        songDna:snapshot.result?.songDna || arrangementArtifact?.songDna,
+        blueprint:snapshot.result?.blueprint || arrangementArtifact?.blueprint,
+        identityLock:snapshot.result?.identityLock || arrangementArtifact?.identityLock,
+        generatedAt:snapshot.completedAt || Date.now(),
+      }, bundle.project.activeRevisionId);
+      bundle = {...bundle, project:{...bundle.project, productionSnapshot:snapshotData, updatedAt:Date.now()}};
+      await projectService.saveProject(bundle);
+    }
+
+    if (bundle) { setProjectBundle(bundle); setSaveState('saved'); }
+    return bundle;
+  };
+
+  const applyBackgroundSnapshot = async (snapshot: BackgroundRunSnapshot) => {
+    activeBackgroundRunIdRef.current = snapshot.id;
+    setIdea(snapshot.input.idea); setStyle(snapshot.input.styleId);
+    setAutoEvents(snapshot.events.map(compactAutoEventForUi));
+    setAutoStartedAt(snapshot.startedAt || snapshot.createdAt);
+    const context = snapshot.result?.context || snapshot.checkpoints.context;
+    applyBackgroundContext(context);
+
+    const leadArtifact = snapshot.checkpoints.leadArtifact;
+    const arrangementArtifact = snapshot.checkpoints.arrangementArtifact;
+    const leadXml = snapshot.result?.leadSheetXml || leadArtifact?.xml || '';
+    const finalXmlValue = snapshot.result?.finalXml || arrangementArtifact?.xml || '';
+    if (leadXml) setLeadSheetXml(leadXml);
+    if (finalXmlValue) setFinalXml(finalXmlValue);
+    const readiness = snapshot.result?.readiness || arrangementArtifact?.readiness;
+    if (readiness) setAutoReadiness(readiness);
+
+    let persistenceSucceeded = true;
+    let persistedBundle: MusicProjectBundle | undefined;
+    try { persistedBundle = await persistBackgroundArtifacts(snapshot); }
+    catch (cause) {
+      persistenceSucceeded = false;
+      addToast(productErrorText(cause, 'Artifact đã được server giữ an toàn nhưng chưa lưu được dự án cục bộ. Refresh trang có thể thử lưu lại trong phiên server hiện tại.'));
+    }
+
+    const active = snapshot.status === 'queued' || snapshot.status === 'running';
+    setAutoRunning(active);
+    if (active) return;
+
+    clearAutoPollTimer();
+    const clearRecoveredSession = shouldClearBackgroundRunSession(snapshot, persistenceSucceeded);
+    if (clearRecoveredSession) {
+      clearActiveBackgroundRunSession();
+      activeBackgroundRunIdRef.current = undefined;
+    }
+    if (terminalHandledRunRef.current === snapshot.id) return;
+    terminalHandledRunRef.current = snapshot.id;
+
+    if (snapshot.status === 'completed' && snapshot.result) {
+      setStep(4);
+      const elapsedSeconds = Math.max(1, ((snapshot.completedAt || Date.now()) - (snapshot.startedAt || snapshot.createdAt)) / 1000);
+      setAutoEtaSeconds(recordEtaSample(elapsedSeconds));
+      addToast(`Hoàn tất: ${snapshot.result.readiness.label}`);
+      const persisted = persistenceSucceeded ? persistedBundle : await persistBackgroundArtifacts(snapshot).catch(()=>undefined);
+      if (!clearRecoveredSession && persisted) {
+        clearActiveBackgroundRunSession();
+        activeBackgroundRunIdRef.current = undefined;
+        persistenceSucceeded = true;
+      }
+      if (persisted && snapshot.result.readiness.status === 'PASS') {
+        void runsService.saveRun({
+          idea:snapshot.input.idea, style:snapshot.input.styleId, metaPrompt:snapshot.result.context.metaPlan,
+          composePrompt:snapshot.result.context.composePrompt, arrangePrompt:snapshot.result.context.arrangePrompt,
+          musicXml:snapshot.result.finalXml, leadMusicXml:snapshot.result.leadSheetXml, finalMusicXml:snapshot.result.finalXml,
+          title:persisted.project.title, version:persisted.revisions.length, status:'completed',
+        }, persisted.project.id).catch(()=>undefined);
+      }
+    } else if (snapshot.status === 'cancelled') {
+      const last = snapshot.events.at(-1);
+      const cancelled: AutoComposeEvent = { kind:'cancelled', step:last?.step||1, progress:last?.progress||0, label:'Đã dừng theo yêu cầu', detail:'Các artifact đã hoàn tất trước thời điểm dừng vẫn được giữ lại.', at:Date.now() };
+      setAutoEvents(current => [...current, cancelled]);
+      addToast('Đã dừng quy trình sáng tác.');
+    } else if (snapshot.status === 'failed') {
+      addToast(productErrorText(snapshot.error, snapshot.error?.message || 'Quy trình sáng tác tự động thất bại.'));
+    }
+    activeBackgroundProjectIdRef.current = undefined;
+  };
+
+  const pollBackgroundRun = async (runId: string) => {
+    clearAutoPollTimer();
+    if (!autoPollActiveRef.current) return;
+    try {
+      const snapshot = await getBackgroundAutoComposition(runId);
+      if (!autoPollActiveRef.current) return;
+      await applyBackgroundSnapshot(snapshot);
+      if (!autoPollActiveRef.current) return;
+      if (snapshot.status === 'queued' || snapshot.status === 'running') {
+        autoPollTimerRef.current = setTimeout(() => { void pollBackgroundRun(runId); }, 1500);
+      }
+    } catch (cause: any) {
+      if (!autoPollActiveRef.current) return;
+      if (cause?.code === 'RUN_SESSION_LOST') {
+        clearActiveBackgroundRunSession();
+        activeBackgroundRunIdRef.current = undefined;
+        setAutoRunning(false);
+        addToast('Phiên chạy nền đã mất vì server local đã khởi động lại. Không tự tạo lại bài để tránh phát sinh generation trùng.');
+      } else {
+        autoPollTimerRef.current = setTimeout(() => { void pollBackgroundRun(runId); }, 2500);
+      }
+    }
+  };
+
+  useEffect(() => {
+    autoPollActiveRef.current = true;
+    const session = readActiveBackgroundRunSession();
+    if (session?.runId) {
+      activeBackgroundRunIdRef.current = session.runId;
+      activeBackgroundProjectIdRef.current = session.projectId;
+      setAutoRunning(true);
+      setAutoEtaSeconds(readEtaEstimate());
+      void pollBackgroundRun(session.runId);
+    }
+    return () => {
+      autoPollActiveRef.current = false;
+      clearAutoPollTimer();
+    };
+  }, []);
+
   const handleAutoCompose = async () => {
     if (!idea.trim()) return addToast('Vui lòng nhập ý tưởng');
     if (!(await persistBeforeNewRun())) return;
     resetOutputForNewRun();
-    const abort = new AbortController(); autoAbortRef.current = abort;
-    const runStartedAt=Date.now();
+    terminalHandledRunRef.current = undefined;
+    const runStartedAt = Date.now();
     setAutoRunning(true); setAutoStartedAt(runStartedAt); setAutoEtaSeconds(readEtaEstimate());
-    let leadBundle: MusicProjectBundle | undefined;
-    let compositionQualityForRun: QualityReport | undefined;
-    let streamedContext: AutoCompositionContext | undefined;
-    let leadXmlCheckpoint = '';
-    let lastAutoEvent: AutoComposeEvent | undefined;
+    writeActiveBackgroundRunProjectId(undefined);
     try {
-      const result = await runAutoCompositionStreamed({ idea, styleId: style }, {
-        signal: abort.signal,
-        maxQualityRetries: 1,
-        onEvent: async event => {
-          lastAutoEvent = event;
-          setAutoEvents(current => [...current, compactAutoEventForUi(event)]);
-          if (event.readiness) setAutoReadiness(event.readiness);
-          if (event.context) {
-            streamedContext = event.context;
-            setComposePrompt(event.context.composePrompt); setArrangePrompt(event.context.arrangePrompt);
-            setComposeDocRefs(event.context.composeDocRefs); setArrangeDocRefs(event.context.arrangeDocRefs);
-            setMetaPlan(event.context.metaPlan); setPlanSummary(event.context.planSummary); setSongRequest(event.context.songRequest);
-          }
-          if (event.kind === 'quality' && event.step === 3 && event.quality) compositionQualityForRun = event.quality;
-          if (event.kind === 'artifact' && event.step === 3 && event.xml) {
-            leadXmlCheckpoint = event.xml;
-            setLeadSheetXml(event.xml); setFinalXml('');
-            if (!leadBundle) {
-              try {
-                const label=event.quality?.status==='FAIL'?'Lead Sheet cần rà soát':'Lead Sheet';
-                leadBundle = await projectService.createFromComposition({ title:idea.slice(0,100)||'Bản nhạc Music-Pro', idea, style, musicXml:event.xml, reason:'compose', label });
-                if (streamedContext) {
-                  leadBundle = withCompositionContext(leadBundle, normalizeCompositionContext(streamedContext));
-                  await projectService.saveProject(leadBundle);
-                }
-                setProjectBundle(leadBundle); setSaveState('saved');
-              } catch (cause) {
-                addToast(productErrorText(cause, 'Lead Sheet đã tạo xong nhưng chưa lưu được dự án cục bộ. Quy trình vẫn tiếp tục.'));
-              }
-            }
-          }
-          if (event.kind === 'artifact' && event.step === 4 && event.xml) {
-            setFinalXml(event.xml);
-            try {
-              const label=event.readiness?.status==='PASS'?'Bản phối':'Bản phối cần rà soát';
-              let artifactBundle=leadBundle;
-              if (!artifactBundle && leadXmlCheckpoint) {
-                artifactBundle = await projectService.createFromComposition({ title:idea.slice(0,100)||'Bản nhạc Music-Pro', idea, style, musicXml:leadXmlCheckpoint, reason:'compose', label:compositionQualityForRun?.status==='PASS'?'Lead Sheet':'Lead Sheet cần rà soát' });
-                if (streamedContext) {
-                  artifactBundle = withCompositionContext(artifactBundle, normalizeCompositionContext(streamedContext));
-                  await projectService.saveProject(artifactBundle);
-                }
-              }
-              if (!artifactBundle) throw new Error('Không có Lead Sheet checkpoint để lưu bản phối.');
-              if(activeXml(artifactBundle)!==event.xml){
-                artifactBundle=await projectService.appendRevision(artifactBundle,{musicXml:event.xml,reason:'arrange',label});
-              }
-              if(compositionQualityForRun&&event.quality&&event.readiness){
-                const snapshot=bindProductionSnapshotToRevision({
-                  pipelineVersion:'auto-production-v1.4.1',qualityContractVersion:'production-quality-v1.4.1',
-                  sourceHead:'6608e1e2fa620fd71f3356e063bac862ede6fdc5',input:{idea,styleId:style},
-                  compositionQuality:compositionQualityForRun,arrangementQuality:event.quality,readiness:event.readiness,
-                  songDna:event.songDna,blueprint:event.blueprint,identityLock:event.identityLock,generatedAt:Date.now(),
-                },artifactBundle.project.activeRevisionId);
-                artifactBundle={...artifactBundle,project:{...artifactBundle.project,productionSnapshot:snapshot,updatedAt:Date.now()}};
-                await projectService.saveProject(artifactBundle);
-              }
-              leadBundle=artifactBundle;setProjectBundle(artifactBundle);setSaveState('saved');
-            }catch(cause){addToast(productErrorText(cause,'Bản phối đã hiển thị nhưng chưa lưu được revision/snapshot cục bộ.'));}
-          }
-        },
-      });
-      setComposePrompt(result.context.composePrompt); setArrangePrompt(result.context.arrangePrompt);
-      setComposeDocRefs(result.context.composeDocRefs); setArrangeDocRefs(result.context.arrangeDocRefs);
-      setMetaPlan(result.context.metaPlan); setPlanSummary(result.context.planSummary); setSongRequest(result.context.songRequest);
-      setLeadSheetXml(result.leadSheetXml); setFinalXml(result.finalXml); setAutoReadiness(result.readiness);
-
-      let savedBundle: MusicProjectBundle | undefined = leadBundle;
-      try {
-        let bundle = savedBundle || await projectService.createFromComposition({ title:idea.slice(0,100)||'Bản nhạc Music-Pro', idea, style, musicXml:result.leadSheetXml, reason:'compose', label:result.compositionQuality.status==='PASS'?'Lead Sheet':'Lead Sheet cần rà soát' });
-        bundle = withCompositionContext(bundle, normalizeCompositionContext(result.context));
-        await projectService.saveProject(bundle);
-        if(activeXml(bundle)!==result.finalXml){
-          bundle = await projectService.appendRevision(bundle, { musicXml:result.finalXml, reason:'arrange', label:result.readiness.status==='PASS'?'Bản phối':'Bản phối cần rà soát' });
-        }
-        const snapshot=bindProductionSnapshotToRevision({
-          pipelineVersion:'auto-production-v1.4.1',qualityContractVersion:'production-quality-v1.4.1',
-          sourceHead:'6608e1e2fa620fd71f3356e063bac862ede6fdc5',input:{idea,styleId:style},
-          compositionQuality:result.compositionQuality,arrangementQuality:result.arrangementQuality,readiness:result.readiness,
-          songDna:result.songDna,blueprint:result.blueprint,identityLock:result.identityLock,generatedAt:Date.now(),
-        },bundle.project.activeRevisionId);
-        bundle={...bundle,project:{...bundle.project,productionSnapshot:snapshot,updatedAt:Date.now()}};
-        await projectService.saveProject(bundle);
-        savedBundle=bundle;setProjectBundle(bundle);setSaveState('saved');setStep(4);
-      } catch (cause) {
-        setSaveState('dirty');
-        addToast(productErrorText(cause, 'Bài hát đã hoàn tất nhưng chưa lưu đầy đủ production snapshot cục bộ.'));
+      const created = await startBackgroundAutoComposition({ idea, styleId: style, maxQualityRetries: 1 });
+      activeBackgroundRunIdRef.current = created.runId;
+      activeBackgroundProjectIdRef.current = undefined;
+      await pollBackgroundRun(created.runId);
+    } catch (cause: any) {
+      const pending = readActiveBackgroundRunSession()?.runId;
+      if (pending) {
+        activeBackgroundRunIdRef.current = pending;
+        activeBackgroundProjectIdRef.current = undefined;
+        setAutoRunning(true);
+        addToast('Kết nối lúc khởi tạo bị gián đoạn. Đang kiểm tra runId đã lưu để tránh tạo bài trùng.');
+        void pollBackgroundRun(pending);
+        return;
       }
-      const learnedEta=recordEtaSample((Date.now()-runStartedAt)/1000); setAutoEtaSeconds(learnedEta);
-      addToast(`Hoàn tất: ${result.readiness.label}`);
-      if (savedBundle&&result.readiness.status==='PASS') void runsService.saveRun({ idea, style, metaPrompt:result.context.metaPlan, composePrompt:result.context.composePrompt, arrangePrompt:result.context.arrangePrompt, musicXml:result.finalXml, leadMusicXml:result.leadSheetXml, finalMusicXml:result.finalXml, title:savedBundle.project.title, version:savedBundle.revisions.length, status:'completed' }, savedBundle.project.id).catch(()=>undefined);
-    } catch (cause:any) {
-      if (cause?.name === 'AbortError') {
-        const cancelled: AutoComposeEvent = { kind:'cancelled', step:lastAutoEvent?.step||1, progress:lastAutoEvent?.progress||0, label:'Đã dừng theo yêu cầu', detail:'Các artifact đã hoàn tất trước thời điểm dừng vẫn được giữ lại.', at:Date.now() };
-        setAutoEvents(current => [...current, cancelled]);
-        addToast('Đã dừng quy trình sáng tác.');
-      } else if (cause?.code === 'STREAM_RESULT_MISSING' && leadBundle && isProductionCertificationCurrent(leadBundle.project.productionSnapshot, leadBundle.project.activeRevisionId)) {
-        setProjectBundle(leadBundle); setSaveState('saved'); setStep(4);
-        setAutoReadiness(leadBundle.project.productionSnapshot?.readiness);
-        addToast('Bản production đã được lưu an toàn; chỉ thiếu gói xác nhận cuối của stream.');
-      } else addToast(productErrorText(cause, cause?.message || 'Quy trình sáng tác tự động thất bại.'));
-    } finally {
-      setAutoRunning(false); autoAbortRef.current = null;
+      setAutoRunning(false);
+      addToast(productErrorText(cause, cause?.message || 'Không thể bắt đầu quy trình sáng tác nền.'));
+    }
+  };
+
+  const handleCancelAutoCompose = async () => {
+    const runId = activeBackgroundRunIdRef.current || readActiveBackgroundRunSession()?.runId;
+    if (!runId) return;
+    try {
+      const snapshot = await cancelBackgroundAutoComposition(runId);
+      await applyBackgroundSnapshot(snapshot);
+    } catch (cause: any) {
+      addToast(productErrorText(cause, cause?.message || 'Không thể dừng quy trình sáng tác.'));
     }
   };
 
@@ -331,7 +448,7 @@ export const ComposeView: React.FC = () => {
     <div className="flex flex-col gap-4 mb-6 lg:flex-row lg:items-center lg:justify-between"><div className="flex items-center gap-4"><div className="w-12 h-12 rounded-xl bg-indigo-500/20 text-indigo-400 flex items-center justify-center"><Sparkles className="w-6 h-6"/></div><div><h1 className="text-3xl font-bold">Sáng tác</h1><p className="text-zinc-400">Một quy trình tự động · 4 bước · Final MusicXML là master composition</p></div></div><div className="flex rounded-xl border border-white/10 bg-black/30 p-1"><button type="button" onClick={()=>setComposeMode('auto')} disabled={autoRunning} className={`inline-flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-bold ${composeMode==='auto'?'bg-indigo-600 text-white':'text-zinc-500'}`}><WandSparkles className="h-4 w-4"/>Tự động</button><button type="button" onClick={()=>setComposeMode('manual')} disabled={autoRunning} className={`inline-flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-bold ${composeMode==='manual'?'bg-zinc-700 text-white':'text-zinc-500'}`}><Settings2 className="h-4 w-4"/>Từng bước</button></div></div>
 
     {composeMode==='auto' ? <div className="flex-1 min-h-0 space-y-4 overflow-auto pb-8">
-      <div className="rounded-2xl border border-white/10 bg-white/5 p-4 md:p-6"><div className="grid gap-4 lg:grid-cols-[260px_1fr_auto] lg:items-end"><label className="text-sm text-zinc-400">Phong cách<select value={style} disabled={autoRunning} onChange={e=>setStyle(e.target.value)} className="mt-2 w-full bg-black border border-white/10 rounded-xl p-3 text-white"><option value="STYLE.VN.VPOP-BALLAD">V-Pop Ballad</option><option value="STYLE.VN.BOLERO-TRU-TINH">Bolero / Trữ tình</option><option value="STYLE.VN.DAN-CA-CONTEMPORARY">Dân ca đương đại</option><option value="STYLE.VN.ACOUSTIC-INDIE">Acoustic Indie</option><option value="STYLE.VN.HEROIC-MARCH">Hành khúc</option></select></label><label className="text-sm text-zinc-400">Ý tưởng / Chủ đề<textarea value={idea} disabled={autoRunning} onChange={e=>setIdea(e.target.value)} className="mt-2 min-h-28 w-full resize-y bg-black border border-white/10 rounded-xl p-4 text-white disabled:opacity-60" placeholder="Ví dụ: Một V-Pop Ballad về người trưởng thành trở về quê, nhớ mối tình đầu bên dòng sông cũ…"/></label><div className="flex gap-2"><button onClick={()=>void handleAutoCompose()} disabled={autoRunning||!idea.trim()} className="inline-flex min-w-36 items-center justify-center gap-2 rounded-xl bg-indigo-600 px-6 py-3 font-bold text-white disabled:opacity-40">{autoRunning?<Loader2 className="h-5 w-5 animate-spin"/>:<WandSparkles className="h-5 w-5"/>}{autoRunning?'Đang tạo…':'Tạo bài hát'}</button>{autoRunning&&<button onClick={()=>autoAbortRef.current?.abort()} className="rounded-xl border border-white/10 px-4 py-3 text-sm text-zinc-400">Dừng</button>}</div></div><p className="mt-3 text-xs text-zinc-600">Hệ thống tự chạy Bước 1 → 4, kiểm tra quality gate và tự retry có giới hạn. Chuyển sang “Từng bước” nếu cần can thiệp prompt thủ công.</p></div>
+      <div className="rounded-2xl border border-white/10 bg-white/5 p-4 md:p-6"><div className="grid gap-4 lg:grid-cols-[260px_1fr_auto] lg:items-end"><label className="text-sm text-zinc-400">Phong cách<select value={style} disabled={autoRunning} onChange={e=>setStyle(e.target.value)} className="mt-2 w-full bg-black border border-white/10 rounded-xl p-3 text-white"><option value="STYLE.VN.VPOP-BALLAD">V-Pop Ballad</option><option value="STYLE.VN.BOLERO-TRU-TINH">Bolero / Trữ tình</option><option value="STYLE.VN.DAN-CA-CONTEMPORARY">Dân ca đương đại</option><option value="STYLE.VN.ACOUSTIC-INDIE">Acoustic Indie</option><option value="STYLE.VN.HEROIC-MARCH">Hành khúc</option></select></label><label className="text-sm text-zinc-400">Ý tưởng / Chủ đề<textarea value={idea} disabled={autoRunning} onChange={e=>setIdea(e.target.value)} className="mt-2 min-h-28 w-full resize-y bg-black border border-white/10 rounded-xl p-4 text-white disabled:opacity-60" placeholder="Ví dụ: Một V-Pop Ballad về người trưởng thành trở về quê, nhớ mối tình đầu bên dòng sông cũ…"/></label><div className="flex gap-2"><button onClick={()=>void handleAutoCompose()} disabled={autoRunning||!idea.trim()} className="inline-flex min-w-36 items-center justify-center gap-2 rounded-xl bg-indigo-600 px-6 py-3 font-bold text-white disabled:opacity-40">{autoRunning?<Loader2 className="h-5 w-5 animate-spin"/>:<WandSparkles className="h-5 w-5"/>}{autoRunning?'Đang tạo…':'Tạo bài hát'}</button>{autoRunning&&<button onClick={()=>void handleCancelAutoCompose()} className="rounded-xl border border-white/10 px-4 py-3 text-sm text-zinc-400">Dừng</button>}</div></div><p className="mt-3 text-xs text-zinc-600">Hệ thống tự chạy Bước 1 → 4 trên server local, kiểm tra quality gate và tự retry có giới hạn; có thể chuyển menu hoặc refresh trong cùng phiên server, chỉ nút “Dừng” mới hủy. Chuyển sang “Từng bước” nếu cần can thiệp prompt thủ công.</p></div>
       <AutoComposeProgress events={autoEvents} running={autoRunning} startedAt={autoStartedAt} readiness={autoReadiness} estimatedTotalSeconds={autoEtaSeconds}/>
       {(leadSheetXml||finalXml)&&<div className="rounded-2xl border border-white/10 bg-white/5 p-4 md:p-6"><ResultWorkspace xmlContent={finalXml||leadSheetXml} title={idea||'Music-Pro'} subtitle={finalXml?(productionCertificationCurrent?'Bản phối hoàn chỉnh · Production-ready composition':'Bản phối hiện tại · Production certification STALE/REVIEW'):'Lead Sheet hiện tại'} filenameBase={idea||'music-pro-song'} projectBundle={projectBundle} saveState={saveState} onSaveProject={()=>void saveProjectNow()} onProjectChange={handleProjectChange} onChangeXml={(xml,reason,label)=>void handleWorkspaceXml(xml,reason,label,workspaceTargetForStep(4,Boolean(finalXml)))}/>{studioVersion}</div>}
     </div> : <div className="flex-1 min-h-0 bg-white/5 border border-white/10 rounded-2xl p-4 md:p-6 flex flex-col">

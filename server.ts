@@ -8,6 +8,7 @@ import { buildProductionBlueprint } from "./server/music/production-blueprint";
 import { buildGeminiMusicBrief, buildLyriaPrompt } from "./server/music/gemini-music-brief";
 import { prepareComposition, generateLeadSheet, generateArrangement } from "./server/music/composer";
 import { createAutoProductionStreamHandler } from "./server/music/auto-production-stream";
+import { createBackgroundRunApiHandlers, createBackgroundRunRegistry } from "./server/music/auto-production-runs";
 import { buildGenerationFailureDiagnostics, type GenerationFailureDiagnostics } from "./server/music/generation-failure-diagnostics";
 import { validateMusicXML } from "./server/music/musicxml-validator";
 import {
@@ -199,18 +200,26 @@ async function startServer() {
     }
   });
 
-  // AUTO_PRODUCTION_V1_4_1 — one streamed, quality-enforced 4-step orchestration endpoint
-  app.post("/api/compose/run-stream", createAutoProductionStreamHandler({
+  const autoProductionDeps = {
     prepareComposition,
     generateLeadSheet,
     generateArrangement,
-    analyze: (musicXml, styleId, idea) => {
+    analyze: (musicXml: string, styleId: string, idea: string) => {
       const songDNA = extractSongDNA(musicXml);
       const mappedStyle = getStyleDisplayName(styleId);
       const blueprint = buildProductionBlueprint(songDNA, { style: mappedStyle, idea });
       return { songDNA, blueprint };
     },
-  }));
+  };
+
+  // AUTO_PRODUCTION_V1_4_1 — compatibility streamed endpoint. Auto UI uses server-owned runs below.
+  app.post("/api/compose/run-stream", createAutoProductionStreamHandler(autoProductionDeps));
+
+  const backgroundRunRegistry = createBackgroundRunRegistry(autoProductionDeps);
+  const backgroundRunApi = createBackgroundRunApiHandlers(backgroundRunRegistry);
+  app.post("/api/compose/runs", backgroundRunApi.create);
+  app.get("/api/compose/runs/:runId", backgroundRunApi.get);
+  app.post("/api/compose/runs/:runId/cancel", backgroundRunApi.cancel);
 
   app.post("/api/compose/prepare", async (req, res) => {
     try {

@@ -47,6 +47,7 @@ export interface AutoComposeEvent {
   progress: number;
   label: string;
   detail?: string;
+  indeterminate?: boolean;
   summary?: AutoComposeStepSummary;
   quality?: QualityReport;
   xml?: string;

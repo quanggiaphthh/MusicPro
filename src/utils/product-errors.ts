@@ -1,6 +1,7 @@
 export type ProductErrorCode =
   | 'PROVIDER_UNAVAILABLE'
   | 'PROVIDER_RATE_LIMITED'
+  | 'GENERATION_TIMEOUT'
   | 'INVALID_MUSICXML'
   | 'SECTION_MERGE_FAILED'
   | 'SOUNDFONT_UNAVAILABLE'
@@ -12,7 +13,7 @@ export type ProductErrorCode =
 export function normalizeProductErrorCode(error: any): ProductErrorCode {
   const code = String(error?.code || error?.error?.code || '').toUpperCase();
   const known: ProductErrorCode[] = [
-    'PROVIDER_UNAVAILABLE','PROVIDER_RATE_LIMITED','INVALID_MUSICXML','SECTION_MERGE_FAILED',
+    'PROVIDER_UNAVAILABLE','PROVIDER_RATE_LIMITED','GENERATION_TIMEOUT','INVALID_MUSICXML','SECTION_MERGE_FAILED',
     'SOUNDFONT_UNAVAILABLE','AUDIO_RENDER_FAILED','LOCAL_STORAGE_FAILED','CLOUD_SYNC_FAILED',
   ];
   if (known.includes(code as ProductErrorCode)) return code as ProductErrorCode;
@@ -31,6 +32,8 @@ export function productErrorMessage(code: ProductErrorCode, fallback?: string): 
       return 'Máy chủ AI đang bận. Bản nhạc hiện tại vẫn an toàn; bạn có thể nghe, chỉnh sửa và xuất file rồi thử lại sau.';
     case 'PROVIDER_RATE_LIMITED':
       return 'Dịch vụ AI đang giới hạn tần suất. Bản nhạc hiện tại vẫn được giữ nguyên; hãy tiếp tục chỉnh sửa/xuất file và thử lại sau.';
+    case 'GENERATION_TIMEOUT':
+      return 'Tác vụ AI đã vượt quá thời gian xử lý cho phép. Các bước/artifact đã hoàn tất vẫn được giữ lại; hệ thống không tự chạy lại provider để tránh tạo trùng. Bạn có thể thử lại khi sẵn sàng.';
     case 'INVALID_MUSICXML':
       return 'MusicXML không hợp lệ. Bản hợp lệ gần nhất vẫn được giữ; hãy hoàn tác hoặc khôi phục một phiên bản trước.';
     case 'SECTION_MERGE_FAILED':

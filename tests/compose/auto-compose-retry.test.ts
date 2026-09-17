@@ -8,10 +8,16 @@ const plist='<part-list>'+['P1:Vocal','P2:Piano','P3:Bass','P4:Strings'].map(x=>
 const part=(id:string)=>`<part id="${id}">${Array.from({length:32},(_,i)=>`<measure number="${i+1}"><note><pitch><step>${id==='P3'?'C':'G'}</step><octave>${id==='P3'?2:4}</octave></pitch><duration>1</duration>${id==='P1'?'<lyric><text>quê</text></lyric>':''}</note>${id==='P2'?'<note><pitch><step>C</step><octave>4</octave></pitch><duration>1</duration></note>':''}</measure>`).join('')}</part>`;
 const xml=`<?xml version="1.0"?><score-partwise>${plist}${part('P1')}${part('P2')}${part('P3')}${part('P4')}</score-partwise>`;
 const prepared={songRequest:{language:'vi',concept:'quê hương',songForm:'Verse Chorus Bridge Final Chorus'},metaPlan:'meta',composePrompt:'compose',arrangePrompt:'arrange',composeDocRefs:[],arrangeDocRefs:[],planSummary:'plan'};
-const queue=[prepared,{xml},{songDNA:bad,blueprint:{}},{xml},{songDNA:good,blueprint:{}},{xml},{songDNA:good,blueprint:{}}];
-let i=0;const urls:string[]=[];const fakeFetch:any=async(url:string)=>{urls.push(url);return{ok:true,json:async()=>queue[i++]};};const events:any[]=[];
-const result=await runAutoComposition({idea:'quê',styleId:'STYLE.VN.VPOP-BALLAD'},{fetchImpl:fakeFetch,maxQualityRetries:1,onEvent:e=>{events.push(e);}});
-assert(result.readiness.status==='PASS',`final readiness: ${result.readiness.blockers.join('; ')}`);
-assert(urls.filter(url=>url==='/api/compose/lead-sheet').length===2,'must retry lead sheet once');
-assert(events.some(e=>e.kind==='retry'&&e.step===3),'must emit quality retry event');
-console.log('PASS auto-compose-retry');
+const queue=[prepared,{xml},{songDNA:bad,blueprint:{}}];
+let i=0;const urls:string[]=[];const fakeFetch:any=async(url:string)=>{urls.push(url);const body=queue[i++];if(body===undefined)throw new Error(`unexpected request after Step 3 halt: ${url}`);return{ok:true,json:async()=>body};};const events:any[]=[];
+let caught:any;
+try{
+  await runAutoComposition({idea:'quê',styleId:'STYLE.VN.VPOP-BALLAD'},{fetchImpl:fakeFetch,maxQualityRetries:1,onEvent:e=>{events.push(e);}});
+}catch(error){caught=error;}
+assert(caught?.code==='COMPOSITION_QUALITY_FAILED',`expected COMPOSITION_QUALITY_FAILED, got ${caught?.code || caught}`);
+assert(urls.filter(url=>url==='/api/compose/lead-sheet').length===1,'r3 must request Step 3 lead sheet exactly once');
+assert(urls.filter(url=>url==='/api/compose/arrange').length===0,'must halt before Step 4 when composition quality fails');
+assert(!events.some(e=>e.kind==='retry'&&e.step===3),'r3 must never emit a Step 3 full-song retry event');
+assert(events.some(e=>e.kind==='artifact'&&e.step===3),'must preserve the final Step 3 candidate before halting');
+assert(events.some(e=>e.kind==='halted'&&e.step===3),'must emit a Step 3 halted event');
+console.log('PASS auto-compose-retry-r3-single-attempt');

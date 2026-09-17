@@ -1,6 +1,12 @@
 import { GoogleGenAI, Type, GenerateContentParameters, GenerateContentResponse, ThinkingLevel } from "@google/genai";
 import { getForAi, getCoreDocsForStep, getDocsByRefs, getCatalogCandidates, getStyleInfo, getCatalog } from "../projectmusic/knowledge";
 import { validateLeadSheet, validateArrangement } from "./musicxml-validator";
+import { extractSongDNA } from "./song-dna";
+import { generateLeadSheetR3 } from "./lead-sheet-r3";
+import { evaluateCompositionQuality } from "../../src/compose/production-quality";
+import { getProviderTimeoutMs, runWithProviderTimeout, type ProviderStage } from "./provider-timeout";
+import { dedupeKnowledgeRefsAgainstCore } from "./knowledge-dedup";
+import { emitGenerationTelemetry, emitValidationFailureTelemetry, getGenerationRunSignal, type GenerationTelemetryStage } from "./generation-telemetry";
 
 const ai = new GoogleGenAI({ 
   apiKey: process.env.GEMINI_API_KEY,
@@ -18,6 +24,62 @@ const FALLBACK_MODEL = process.env.TEXT_FALLBACK_MODEL || 'gemini-3.5-flash';
 export type GenerateFn = (params: GenerateContentParameters) => Promise<GenerateContentResponse>;
 
 const defaultGenerate: GenerateFn = (params) => ai.models.generateContent(params);
+
+async function generateCancelable(
+  generate: GenerateFn,
+  params: GenerateContentParameters,
+  stage: Extract<GenerationTelemetryStage, 'prepare-step1' | 'prepare-step2'>,
+): Promise<GenerateContentResponse> {
+  const signal = getGenerationRunSignal();
+  if (signal?.aborted) throw new DOMException('Aborted', 'AbortError');
+  const config: any = { ...(params.config as any), ...(signal ? { abortSignal: signal } : {}) };
+  const startedAt = Date.now();
+  const model = String((params as any).model || 'unknown');
+  const promptChars = estimateProviderPromptChars({ ...params, config } as GenerateContentParameters);
+  try {
+    const response = await generate({ ...params, config } as GenerateContentParameters);
+    emitGenerationTelemetry({
+      stage, model, startedAt, endedAt: Date.now(), promptChars,
+      responseChars: String((response as any)?.text || '').length, outcome:'success',
+    });
+    return response;
+  } catch (error: any) {
+    emitGenerationTelemetry({
+      stage, model, startedAt, endedAt: Date.now(), promptChars, responseChars:0,
+      outcome:'error', errorCode:error?.code || error?.name,
+    });
+    throw error;
+  }
+}
+
+function estimateProviderPromptChars(params: GenerateContentParameters): number {
+  const contentsChars = (() => { try { return JSON.stringify(params.contents || '').length; } catch { return 0; } })();
+  const system = (params.config as any)?.systemInstruction;
+  const systemChars = typeof system === 'string' ? system.length : (() => { try { return JSON.stringify(system || '').length; } catch { return 0; } })();
+  return contentsChars + systemChars;
+}
+
+async function generateBounded(generate: GenerateFn, params: GenerateContentParameters, stage: ProviderStage): Promise<GenerateContentResponse> {
+  const timeoutMs = getProviderTimeoutMs(stage);
+  const signal = getGenerationRunSignal();
+  const config: any = { ...(params.config as any), httpOptions: { ...((params.config as any)?.httpOptions || {}), timeout: timeoutMs }, ...(signal ? { abortSignal: signal } : {}) };
+  const startedAt = Date.now();
+  const model = String((params as any).model || 'unknown');
+  const promptChars = estimateProviderPromptChars(params);
+  try {
+    const response = await runWithProviderTimeout(() => generate({ ...params, config } as GenerateContentParameters), timeoutMs, stage, signal);
+    const endedAt = Date.now();
+    emitGenerationTelemetry({ stage, model, startedAt, endedAt, promptChars, responseChars: String((response as any)?.text || '').length, outcome:'success' });
+    return response;
+  } catch (error: any) {
+    const endedAt = Date.now();
+    emitGenerationTelemetry({
+      stage, model, startedAt, endedAt, promptChars, responseChars:0,
+      outcome:error?.code === 'GENERATION_TIMEOUT' ? 'timeout' : 'error', errorCode:error?.code || error?.name,
+    });
+    throw error;
+  }
+}
 
 export interface Step2Result {
   songRequest: any;
@@ -66,7 +128,7 @@ Transform the user's idea and style into a structured song request and a meta pl
     required: ["concept", "emotion", "genre"]
   };
 
-  const response1 = await generate({
+  const response1 = await generateCancelable(generate, {
     model: TEXT_MODEL,
     contents: [{ parts: [{ text: `Idea: ${idea}\nStyle: ${styleInfo.displayName}` }] }],
     config: {
@@ -82,7 +144,7 @@ Transform the user's idea and style into a structured song request and a meta pl
         required: ["songRequest", "metaPlan"]
       }
     }
-  });
+  }, 'prepare-step1');
 
   const step1Result = JSON.parse(response1.text);
 
@@ -93,7 +155,7 @@ Transform the user's idea and style into a structured song request and a meta pl
 Based on the Meta Plan, generate specialized prompts and select relevant document IDs (DOC_REFS) for Step 3 (Compose) and Step 4 (Arrange) separately.
 ONLY select IDs from the candidates list. Max 8 refs per step.`;
 
-  const response2 = await generate({
+  const response2 = await generateCancelable(generate, {
     model: TEXT_MODEL,
     contents: [{ parts: [{ text: `Meta Plan:\n${step1Result.metaPlan}` }] }],
     config: {
@@ -112,7 +174,7 @@ ONLY select IDs from the candidates list. Max 8 refs per step.`;
         required: ["composePrompt", "arrangePrompt", "composeDocRefs", "arrangeDocRefs", "planSummary"]
       }
     }
-  });
+  }, 'prepare-step2');
 
   const step2Result = JSON.parse(response2.text);
   
@@ -144,74 +206,30 @@ ONLY select IDs from the candidates list. Max 8 refs per step.`;
 }
 
 export async function generateLeadSheet(
-  composePrompt: string, 
-  composeDocRefs: string[], 
-  metaPlan: string, 
+  composePrompt: string,
+  composeDocRefs: string[],
+  metaPlan: string,
   songRequest: any,
   styleId: string,
   generate: GenerateFn = defaultGenerate
 ): Promise<string> {
-  const forAi = getForAi();
-  const step3Core = getCoreDocsForStep(3);
-  const step3Refs = getDocsByRefs(composeDocRefs, 3);
-  const styleInfo = getStyleInfo(styleId);
-  
-  const systemInstruction = `${forAi}\n\n${step3Core}\n\n${step3Refs}\n\nStyle Card:\n${styleInfo?.content || styleId}\n\nYou are a master composer. 
-Create a Lead Sheet (melody, lyrics, chords) in MusicXML 4.0 format.
-Follow the rules in KNOW.MUSICXML.RULES and KNOW.MUSICXML.ANTI-PATTERNS.
-Ensure the lead sheet sets up valid part metadata: divisions, key, time, and appropriate clef.
-
-Unless the user explicitly asks for a short demo, generate a COMPLETE song form.
-- COMPUTE YOUR MEASURE BUDGET: Minimum Measures = (Target Duration (180-240s) * (BPM / 60)) / (Beats per Measure).
-- Example: At 72 BPM in 4/4, 180s requires (180 * 1.2) / 4 = 54 measures.
-- You MUST generate enough measures to exceed the 150-second validation floor.
-- VOCAL PART: Complete melody and lyrics for the entire song form (Intro, Verse 1, Pre-Chorus, Chorus, Verse 2, Pre-Chorus, Chorus, Bridge, Final Chorus, Outro).
-- PIANO REDUCTION: To stay within token limits for a full song, use a SIMPLE harmonic reduction. Use block chords or a steady half-note pulse as required by KNOW.HARMONY.PIANO-REDUCTION. Do NOT use complex arpeggios or detailed figuration in this step.
-- NO HALLUCINATIONS: Use ONLY standard MusicXML 4.0 tags. Do NOT use <label>, <text-box>, or any tags not defined in the schema.
-- OUTPUT: Output ONLY the MusicXML code. Use a DENSE representation: omit all XML comments, and omit redundant <attributes> blocks in measures where they haven't changed. Do NOT truncate the score; you must reach the final measure. Do NOT use pretty-printing; keep the XML as compact as possible while remaining valid.`;
-
-  const basePrompt = `Meta Plan:\n${metaPlan}\n\nSong Request:\n${JSON.stringify(songRequest, null, 2)}\n\nTask:\n${composePrompt}`;
-
-  async function attempt(model: string, feedback?: string): Promise<string> {
-    const prompt = feedback ? `${basePrompt}\n\n${feedback}` : basePrompt;
-    const res = await generate({
-      model,
-      contents: [{ parts: [{ text: prompt }] }],
-      config: {
-        systemInstruction,
-        temperature: 0.2,
-        thinkingConfig: { thinkingLevel: ThinkingLevel.MINIMAL },
-        maxOutputTokens: 32768,
-      }
-    });
-    
-    const text = res.text;
-    const xmlMatch = text.match(/<\?xml[\s\S]*?<\/score-partwise>/i) || text.match(/<score-partwise[\s\S]*?<\/score-partwise>/i);
-    let xml = xmlMatch ? xmlMatch[0] : text.replace(/```xml/g, '').replace(/```/g, '').trim();
-    
-    if (xml && !xml.trim().startsWith('<?xml')) {
-      xml = `<?xml version="1.0" encoding="UTF-8"?>\n${xml.trim()}`;
-    }
-    return xml;
-  }
-
-  let xml = await attempt(TEXT_MODEL);
-  let validation = validateLeadSheet(xml, songRequest);
-  
-  if (!validation.isValid) {
-    const feedback = `Previous MusicXML failed validation:\n- ${validation.errors.join("\n- ")}\nRegenerate the complete score and fix these validation errors.`;
-    console.warn("Lead Sheet Attempt 1 failed validation. Retrying with fallback model...", validation.errors);
-    xml = await attempt(FALLBACK_MODEL, feedback);
-    validation = validateLeadSheet(xml, songRequest);
-    if (!validation.isValid) {
-      const err: any = new Error(`Lead Sheet validation failed after retry: ${validation.errors.join(", ")}`);
-      err.code = "MUSICXML_INVALID_AFTER_RETRY";
-      err.xml = xml;
-      throw err;
-    }
-  }
-
-  return xml;
+  const result = await generateLeadSheetR3({
+    composePrompt,
+    composeDocRefs,
+    metaPlan,
+    songRequest,
+    styleId,
+    model: TEXT_MODEL,
+  }, {
+    generate: (params) => generate(params as GenerateContentParameters),
+    validateLeadSheet,
+    extractSongDNA,
+    evaluateCompositionQuality,
+    emitTelemetry: (record) => emitGenerationTelemetry(record),
+    signal: getGenerationRunSignal(),
+    totalBudgetMs: getProviderTimeoutMs('lead-sheet'),
+  });
+  return result.xml;
 }
 
 export async function generateArrangement(
@@ -224,7 +242,8 @@ export async function generateArrangement(
 ): Promise<string> {
   const forAi = getForAi();
   const step4Core = getCoreDocsForStep(4);
-  const step4Refs = getDocsByRefs(arrangeDocRefs, 4);
+  const step4UniqueRefs = dedupeKnowledgeRefsAgainstCore(arrangeDocRefs, step4Core, [styleId]);
+  const step4Refs = getDocsByRefs(step4UniqueRefs, 4);
   const styleInfo = getStyleInfo(styleId);
   
   const systemInstruction = `${forAi}\n\n${step4Core}\n\n${step4Refs}\n\nStyle Card:\n${styleInfo?.content || styleId}\n\nYou are a world-class arranger.
@@ -242,7 +261,7 @@ Output ONLY final arranged MusicXML 4.0.`;
 
   async function attempt(model: string, feedback?: string): Promise<string> {
     const prompt = feedback ? `${basePrompt}\n\n${feedback}` : basePrompt;
-    const res = await generate({
+    const res = await generateBounded(generate, {
       model,
       contents: [{ parts: [{ text: prompt }] }],
       config: {
@@ -251,7 +270,7 @@ Output ONLY final arranged MusicXML 4.0.`;
         thinkingConfig: { thinkingLevel: ThinkingLevel.MINIMAL },
         maxOutputTokens: 65536,
       }
-    });
+    }, 'arrangement');
     
     const text = res.text;
     const xmlMatch = text.match(/<\?xml[\s\S]*?<\/score-partwise>/i) || text.match(/<score-partwise[\s\S]*?<\/score-partwise>/i);
@@ -267,11 +286,13 @@ Output ONLY final arranged MusicXML 4.0.`;
   let validation = validateArrangement(xml, leadSheetXml, songRequest);
   
   if (!validation.isValid) {
+    emitValidationFailureTelemetry({ stage:'arrangement', model:TEXT_MODEL, responseChars:xml.length, retryReason:'musicxml-validation', errorCode:'MUSICXML_INVALID' });
     const feedback = `Previous MusicXML failed validation:\n- ${validation.errors.join("\n- ")}\nRegenerate the complete score and fix these validation errors.`;
     console.warn("Arrangement Attempt 1 failed validation. Retrying with fallback model...", validation.errors);
     xml = await attempt(FALLBACK_MODEL, feedback);
     validation = validateArrangement(xml, leadSheetXml, songRequest);
     if (!validation.isValid) {
+      emitValidationFailureTelemetry({ stage:'arrangement', model:FALLBACK_MODEL, responseChars:xml.length, retryReason:'musicxml-validation-after-fallback', errorCode:'MUSICXML_INVALID_AFTER_RETRY' });
       const err: any = new Error(`Arrangement validation failed after retry: ${validation.errors.join(", ")}`);
       err.code = "MUSICXML_INVALID_AFTER_RETRY";
       err.xml = xml;

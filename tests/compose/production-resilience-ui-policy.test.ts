@@ -17,7 +17,7 @@ assert(!exportPanel.includes('Production-ready composition:'),'Export panel must
 assert(view.includes('recordEtaSample'),'successful runs must train future ETA');
 assert(view.includes('Bản phối cần rà soát'),'failed final candidate must be preservable as a review revision');
 assert(view.includes('Lead Sheet cần rà soát'),'failed Step 3 candidate must be distinguishable in revision history');
-assert(view.includes("pipelineVersion:'auto-production-v1.4.1'"),'project snapshot must preserve v1.4.1 pipeline provenance');
+assert(view.includes("pipelineVersion:'auto-production-v1.4.1-local-bg-v1'"),'project snapshot must identify v1.4.1 local-background pipeline provenance');
 assert(view.includes('isProductionCertificationCurrent'),'Studio downstream must be gated by current exact-revision certification');
 assert(service.includes('invalidateProductionCertification'),'revision creation must revoke stale certification while preserving evidence');
 for(const id of ['harmony-preservation','structure-preservation','part-coverage','score-instrument-pairs','unpitched-complexity'])assert(quality.includes(id),`quality contract missing ${id}`);

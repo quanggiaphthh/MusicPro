@@ -1,0 +1,14 @@
+import assert from 'node:assert/strict';
+import { selectBestHook, scoreHookCandidate } from '../../server/music/hook-forge.ts';
+import type { HookCandidate, SongCoreFrame, SongCoreMeasure } from '../../server/music/song-core.ts';
+const frame:SongCoreFrame={tempoBpm:80,key:{tonic:'C',mode:'major'},meter:{beats:4,beatType:4},divisions:24};
+const p=(step:any,octave=4,alter:any=0)=>({step,alter,octave});
+const h=(n:number, pitches:any[], durations:number[], lyrics:string[]):SongCoreMeasure=>{let t=0;const vocal=pitches.map((pitch,i)=>{const v={tick:t,duration:durations[i],pitch,lyric:lyrics[i]};t+=durations[i];return v}); if(t<96)vocal.push({tick:t,duration:96-t,rest:true} as any);return {number:n,sectionId:'hook',harmony:[{tick:0,rootStep:'C',rootAlter:0,kind:'major'}],vocal};};
+const A:HookCandidate={id:'A',measures:[1,2,3,4].map(n=>h(n,[p('C'),p('D'),p('E'),p('D')],[24,24,24,24],['ma','má','mà','ma']))};
+const B:HookCandidate={id:'B',measures:[1,2,3,4].map(n=>h(n,[p('C'),p('E'),p('D'),p('G')],[12,12,24,48],['mà','má','ma','má']))};
+const C:HookCandidate={id:'C',measures:[1,2,3,4].map(n=>h(n,[p('G',5),p('C',4),p('G',5),p('C',4)],[12,12,24,48],['ma','má','ma','má']))};
+const invalid:HookCandidate=JSON.parse(JSON.stringify(B)); invalid.id='X'; invalid.measures[0].vocal[1].tick=6;
+const sb=scoreHookCandidate(B,{frame,language:'vi'}); assert.equal(sb.eligible,true); assert.ok(sb.total>0);
+const tooShort:HookCandidate={id:'SHORT',measures:B.measures.slice(0,3)}; const shortScore=scoreHookCandidate(tooShort,{frame,language:'vi'}); assert.equal(shortScore.eligible,false,'hook candidates shorter than 4 measures are ineligible'); assert.ok(shortScore.reasons.includes('HOOK_MEASURE_COUNT'));
+const selection=selectBestHook([A,C,B,invalid],{frame,language:'vi'}); assert.equal(selection.winner.candidate.id,'B'); assert.ok(selection.ranked.some(x=>x.candidate.id==='X'&&!x.score.eligible));
+console.log('hook-forge.test.ts PASS');

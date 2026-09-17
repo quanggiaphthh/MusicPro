@@ -9,6 +9,7 @@ assert(progress.includes('summary'), 'must render step summaries');
 assert(compose.includes("'auto' | 'manual'"), 'ComposeView must expose auto/manual mode');
 assert(compose.includes("useState<'auto' | 'manual'>('auto')"), 'auto mode must be default');
 assert(compose.includes('Tạo bài hát'), 'single primary auto CTA');
-assert(compose.includes('runAutoComposition'), 'ComposeView must invoke auto orchestrator');
+assert(compose.includes('startBackgroundAutoComposition'), 'ComposeView must start the server-owned auto orchestrator');
+assert(!compose.includes('runAutoCompositionStreamed'), 'ComposeView must not own the long-lived streamed generation request');
 assert(!compose.includes('Bước 5'), 'must not invent Step 5');
 console.log('PASS auto-compose-ui-policy');

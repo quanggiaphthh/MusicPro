@@ -1,0 +1,6 @@
+PACKAGE=Music-Pro local background auto-compose candidate
+BASE_GITHUB_SHA=6608e1e2fa620fd71f3356e063bac862ede6fdc5
+BASE_PIPELINE=v1.4.1
+LOCAL_BACKGROUND_REV=2
+DURABILITY=server-session-only
+CREATED=2026-09-16
